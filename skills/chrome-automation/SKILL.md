@@ -20,14 +20,14 @@ This skill operates on a **single Chrome process** — the user's real browser. 
 Before opening any new page, **always list existing tabs first**:
 
 ```bash
-agent-browser --auto-connect tabs
+agent-browser --auto-connect tab list
 ```
 
-This returns all open tabs with their URLs and titles. Check if the page you need is already open:
+This returns all open tabs with their index numbers, titles, and URLs. Check if the page you need is already open:
 
 - **If the target page is already open** → switch to that tab directly instead of opening a new one. The user likely has it open because they are already logged in and the page is in the right state.
   ```bash
-  agent-browser --auto-connect switch-tab <tabId>
+  agent-browser --auto-connect tab <index>
   ```
 - **If the target page is NOT open** → open it in the current tab or a new tab.
   ```bash
@@ -60,10 +60,10 @@ This auto-discovers Chrome with remote debugging enabled. If connection fails, g
 
 ```bash
 # List tabs to find existing pages
-agent-browser --auto-connect tabs
+agent-browser --auto-connect tab list
 
 # Switch to an existing tab (if found)
-agent-browser --auto-connect switch-tab <tabId>
+agent-browser --auto-connect tab <index>
 
 # Or open a new page
 agent-browser --auto-connect open https://example.com
@@ -112,7 +112,7 @@ The output lists each interactive element with its role, text, and ref. Use thes
 
 | Action | Command |
 |--------|---------|
-| Navigate | `agent-browser --auto-connect open <url>` then `wait --load networkidle` |
+| Navigate | `agent-browser --auto-connect open <url>` (optionally `wait --load networkidle`, but some sites like Reddit never reach networkidle — skip if `open` already shows the page title) |
 | Click | `snapshot -i` → find ref → `click @eN` |
 | Fill standard input | `click @eN` → `fill @eN "text"` |
 | Fill rich text editor | `click @eN` → `keyboard inserttext "text"` |
@@ -238,8 +238,10 @@ When pausing, explain clearly: what step you are on, what you expected, and what
 
 | Command | Description |
 |---------|-------------|
-| `tabs` | List all open tabs with URLs and titles |
-| `switch-tab <tabId>` | Switch to an existing tab |
+| `tab list` | List all open tabs with index, title, and URL |
+| `tab <index>` | Switch to an existing tab by index |
+| `tab new` | Open a new empty tab |
+| `tab close` | Close the current tab |
 | `open <url>` | Navigate to URL |
 | `snapshot -i` | List interactive elements with refs |
 | `click @eN` | Click element by ref |
