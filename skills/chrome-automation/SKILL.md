@@ -273,4 +273,16 @@ When pausing, explain clearly: what step you are on, what you expected, and what
 
 ---
 
+## Platform References
+
+When automating tasks on specific platforms, consult the relevant reference document for page structure details, common operations, and known quirks:
+
+| Platform | Reference | Key Notes |
+|----------|-----------|-----------|
+| Reddit | [`references/reddit.md`](./references/reddit.md) | Custom `faceplate-*` components; `networkidle` never reached; unlabeled comment textbox; `find text` fails due to duplicate elements |
+| X (Twitter) | [`references/x.md`](./references/x.md) | `open` often times out (use `tab list` to reuse existing tabs); click **timestamp** for post detail (not username); DraftJS contenteditable input (`data-testid="tweetTextarea_0"`); avoid `networkidle` |
+| LinkedIn | [`references/linkedin.md`](./references/linkedin.md) | Ember.js SPA; Enter submits comments (use Shift+Enter for newlines); comment box and compose box share the same label; avoid `networkidle`; messaging overlay may block content |
+
+---
+
 > For installation and Chrome setup instructions, see [`references/agent-browser-setup.md`](./references/agent-browser-setup.md).
