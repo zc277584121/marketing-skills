@@ -1,3 +1,8 @@
+---
+name: remove-ai-style
+description: Review and adjust writing style to reduce AI-generated patterns, making text read more naturally and human-like. Supports Chinese and English.
+---
+
 # Remove AI Style
 
 Review and adjust the writing style of an article to reduce obvious AI-generated patterns, making the text read more naturally and human-like.
