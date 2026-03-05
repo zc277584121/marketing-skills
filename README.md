@@ -29,52 +29,54 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 |-------|-------------|
 | [`jupyter-notebook-writing`](./skills/jupyter-notebook-writing/) | Write Milvus application-level Jupyter notebook examples using a Markdown-first workflow with jupyter-switch. |
 
+## Quick Start
+
+Install all skills globally to **all supported AI coding agents** with one command:
+
+```bash
+npx skills add zc277584121/marketing-skills --all -g
+```
+
+Update to the latest version:
+
+```bash
+npx skills update
+```
+
 ## Installation
 
 Install using [npx skills](https://skills.sh):
 
-### Install all skills
+### Install to all agents at once
 
 ```bash
-npx skills add zc277584121/marketing-skills -a <agent-name>
+# Global — available in all projects, all agents
+npx skills add zc277584121/marketing-skills --all -g
 
-# Global (available in all projects)
-npx skills add zc277584121/marketing-skills -a <agent-name> -g
+# Project-level — current project only, all agents
+npx skills add zc277584121/marketing-skills --all
 ```
 
-### Examples
+### Install to a specific agent
 
 ```bash
-# Claude Code
 npx skills add zc277584121/marketing-skills -a claude-code -g
-
-# Cursor
 npx skills add zc277584121/marketing-skills -a cursor -g
-
-# Codex
 npx skills add zc277584121/marketing-skills -a codex -g
 ```
 
-### Other Agents
+Other supported agents: `windsurf`, `github-copilot`, `cline`, `roo`, `gemini-cli`, `goose`, `kilo`, `augment`, `opencode`, and [40+ more](https://skills.sh).
 
-`npx skills` supports 40+ agents. Use `-a <agent-name>` to target any supported agent:
-
-```bash
-npx skills add zc277584121/marketing-skills -a <agent-name>
-```
-
-Common agent names: `windsurf`, `github-copilot`, `cline`, `roo`, `gemini-cli`, `goose`, `kilo`, `augment`, `opencode`.
-
-> **Project vs Global**: Project-level installs the skill into the current project directory (e.g., `.claude/skills/`). Global (`-g`) installs to your home directory (e.g., `~/.claude/skills/`) so it's available across all projects.
+> **Project vs Global**: Without `-g`, skills are installed into the current project directory (e.g., `.claude/skills/`). With `-g`, they go to your home directory (e.g., `~/.claude/skills/`) and are available across all projects.
 
 ## Updating
 
 ```bash
-# Check if updates are available
+# Check for updates
 npx skills check
 
 # Update all globally installed skills to latest
 npx skills update
 ```
 
-> **Note**: `npx skills update` only works for globally installed skills (`-g`). For project-level installs, re-run the `npx skills add` command to get the latest version.
+To update project-level installs, re-run the `npx skills add` command.
