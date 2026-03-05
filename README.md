@@ -4,9 +4,24 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 
 ## Available Skills
 
+### Browser Automation
+
 | Skill | Description |
 |-------|-------------|
 | [`chrome-automation`](./skills/chrome-automation/) | Automate Chrome browser tasks using the [agent-browser](https://github.com/vercel-labs/agent-browser) CLI. Navigate pages, fill forms, click buttons, extract data, and replay recorded workflows. |
+
+### Video Processing
+
+| Skill | Description |
+|-------|-------------|
+| [`raw-video-processing`](./skills/raw-video-processing/) | Post-process raw screen recordings by removing silent segments and applying speed adjustments. |
+| [`video-to-gif`](./skills/video-to-gif/) | Convert a video to multiple GIF variants with different quality/size tradeoffs for visual comparison. |
+
+### Content Creation
+
+| Skill | Description |
+|-------|-------------|
+| [`jupyter-notebook-writing`](./skills/jupyter-notebook-writing/) | Write Milvus application-level Jupyter notebook examples using a Markdown-first workflow with jupyter-switch. |
 
 ## Installation
 
