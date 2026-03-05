@@ -1,39 +1,45 @@
 # Milvus Code Style Guidelines
 
 
-## Create Collection Best Practices
+## API: Always Use MilvusClient (Not ORM)
 
-There are two ways to create a collection in Milvus:
-### Simple way
-Use the `create_collection()` method to create a collection with default settings.
+pymilvus has two sets of APIs:
+
+- **`MilvusClient`** (recommended) — the current, simplified interface. All new tutorials and examples should use this.
+- **ORM layer** (`connections.connect()`, `Collection()`, `FieldSchema()`, `CollectionSchema()`, etc.) — the legacy interface. **Do not use ORM in new code.** It is verbose, harder to read, and no longer recommended.
+
+If you see existing code using ORM patterns like `connections.connect()`, `Collection(name, schema)`, or `utility.has_collection()`, rewrite it to use `MilvusClient`.
+
+### Quick comparison
+
 ```python
+# BAD — ORM style (do not use)
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+connections.connect("default", host="localhost", port="19530")
+fields = [
+    FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
+    FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=768),
+]
+schema = CollectionSchema(fields)
+collection = Collection("demo", schema)
+collection.create_index("vector", {"index_type": "AUTOINDEX", "metric_type": "COSINE"})
+collection.load()
+
+# GOOD — MilvusClient style (always use this)
 from pymilvus import MilvusClient
-
-client = MilvusClient(...)
-
-client.create_collection(
-    collection_name="demo_collection",
-    dimension=768,  # This is a demo dimension for the vector field
-)
+client = MilvusClient(uri="./milvus.db")
+# ... see collection creation below
 ```
-In the above setup,
-- The primary key and vector fields use their default names (`id` and `vector`).
-- The primary key field accepts integers and does not automatically increments.
-- There is an `AUTOINDEX` type index on the vector field, and the metric type is set to its default value (`COSINE`).
-- The dynamic field feature is enabled by default.
-> Milvus allows you to insert entities with flexible, evolving structures through a special feature called the dynamic field. This field is implemented as a hidden JSON field named $meta, which automatically stores any fields in your data that are not explicitly defined in the collection schema.
 
-If the scenario is simple and the simple way is enough, you can use this simple way to create a collection. Otherwise, you can use the complex way to create a collection.
 
-### Complex way
-Manually create the schema, the index parameters and then use the `create_collection()` method to create a collection with them.
+## Create Collection
 
-For example:
+Always define the schema explicitly so readers can see the data model clearly.
 
 ```python
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, DataType
 
-client = MilvusClient(...)
+client = MilvusClient(uri="./milvus.db")
 
 schema = client.create_schema(auto_id=False, enable_dynamic_field=True)
 schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
@@ -45,12 +51,12 @@ index_params.add_index(
     field_name="id",
     index_type="AUTOINDEX"
 )
-
 index_params.add_index(
     field_name="vector",
     index_type="AUTOINDEX",
     metric_type="COSINE"
 )
+
 client.create_collection(collection_name="demo_collection", schema=schema, index_params=index_params)
 ```
 

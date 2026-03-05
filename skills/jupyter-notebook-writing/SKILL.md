@@ -148,7 +148,8 @@ Read this when the user is writing a **Milvus integration tutorial** for the boo
 ### Milvus Code Style (`references/milvus-code-style.md`)
 
 Read this when the notebook involves **pymilvus code**. Key rules:
-- Two ways to create collections: simple (just dimension) vs complex (explicit schema + index)
+- **Always use `MilvusClient` API** — never use the legacy ORM layer (`connections.connect()`, `Collection()`, `FieldSchema()`, etc.)
+- Always define schema explicitly (`create_schema` + `add_field`) — do not use the shortcut `create_collection(dimension=...)` without schema
 - Include `has_collection` check before creating collections
 - Add commented `consistency_level="Strong"` line in `create_collection()`
 - No need to call `load_collection()` — collections auto-load on creation
