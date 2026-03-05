@@ -17,6 +17,12 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | [`raw-video-processing`](./skills/raw-video-processing/) | Post-process raw screen recordings by removing silent segments and applying speed adjustments. |
 | [`video-to-gif`](./skills/video-to-gif/) | Convert a video to multiple GIF variants with different quality/size tradeoffs for visual comparison. |
 
+### Image Processing
+
+| Skill | Description |
+|-------|-------------|
+| [`screenshot-compression`](./skills/screenshot-compression/) | Compress PNG/JPEG screenshots in place using pngquant and jpegoptim, keeping original format for maximum compatibility. |
+
 ### Content Creation
 
 | Skill | Description |
