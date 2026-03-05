@@ -34,3 +34,7 @@ This means every testing session improves the skill. The skill file is a living 
 ### Example
 
 If while testing chrome-automation you discover that `agent-browser --auto-connect tabs` output format changed, or that a certain site requires a specific interaction pattern — update `skills/chrome-automation/SKILL.md` with that knowledge immediately, so the skill gets smarter over time.
+
+## README Maintenance
+
+Every time you add, remove, or update a skill under the `skills/` directory, you **must** also update the project root `README.md`. The README should list all skills grouped by category (e.g., Browser Automation, Video Processing, etc.) so readers can quickly see what's available.
