@@ -29,6 +29,7 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 |-------|-------------|
 | [`jupyter-notebook-writing`](./skills/jupyter-notebook-writing/) | Write Milvus application-level Jupyter notebook examples using a Markdown-first workflow with jupyter-switch. |
 | [`remove-ai-style`](./skills/remove-ai-style/) | Review and adjust writing style to reduce AI-generated patterns, making text read more naturally. Supports Chinese and English. |
+| [`content-rewrite`](./skills/content-rewrite/) | Adapt content for different platforms (LinkedIn, X, Reddit, English blog, WeChat) with platform-specific tone, format, and length. |
 
 ## Quick Start
 
