@@ -22,6 +22,7 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | Skill | Description |
 |-------|-------------|
 | [`screenshot-compression`](./skills/screenshot-compression/) | Compress PNG/JPEG screenshots in place using pngquant and jpegoptim, keeping original format for maximum compatibility. |
+| [`mermaid-to-image`](./skills/mermaid-to-image/) | Convert Mermaid code blocks in Markdown files to PNG images using the mermaid.ink API. |
 
 ### Content Creation
 
