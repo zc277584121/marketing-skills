@@ -1,6 +1,20 @@
 # Milvus Code Style Guidelines
 
 
+## Installation
+
+Install `pymilvus` and `milvus-lite` as **separate packages** — do NOT use the extras syntax:
+
+```bash
+# GOOD
+pip install pymilvus milvus-lite
+
+# BAD — do not use the extras bracket syntax
+pip install "pymilvus[milvus_lite]"
+```
+
+The `pymilvus[milvus_lite]` extra is outdated and may pull in the wrong version. Always install them separately.
+
 ## API: Always Use MilvusClient (Not ORM)
 
 pymilvus has two sets of APIs:
@@ -59,6 +73,8 @@ index_params.add_index(
 
 client.create_collection(collection_name="demo_collection", schema=schema, index_params=index_params)
 ```
+
+**Always use `AUTOINDEX` as the index type.** It is compatible across Milvus Lite, Milvus server (Docker/K8s), and Zilliz Cloud, so notebooks work in all deployment modes without changing the index config.
 
 In practice, you can specify different configurations for the schema and the index parameters depending on the scenario.
 

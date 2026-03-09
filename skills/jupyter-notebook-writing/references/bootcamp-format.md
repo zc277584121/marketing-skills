@@ -22,7 +22,7 @@ Add two badges to the top of your notebook. Note that the suffix of the notebook
   - One or two paragraphs explaining the purpose of the tutorial, the integration provider and the key technologies.
 ### 2. Prerequisites/Preparation
 - **Dependencies**:
-  - Pip install command with all required packages
+  - Pip install command with all required packages, always include `--upgrade` flag
   - After installing pip in Google Colab, always add this note:
 ```
 > If you are using Google Colab, to enable dependencies just installed, you may need to **restart the runtime** (click on the "Runtime" menu at the top of the screen, and select "Restart session" from the dropdown menu).
