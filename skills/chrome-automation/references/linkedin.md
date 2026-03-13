@@ -14,7 +14,7 @@ LinkedIn is an Ember.js single-page application. Key interactive elements:
   - `link "LinkedIn"` — logo/home link
   - `button "Click to start a search"` — opens search combobox
   - `link "Home"`, `link "My Network"`, `link "Jobs"`, `link "Messaging"`, `link "Notifications"` — main nav
-  - `button "Cheney Zhang Me"` — profile/account menu
+  - `button "<Your Name> Me"` — profile/account menu (button text includes the logged-in user's name)
   - `button "For Business"` — business tools
 
 - **Left sidebar** (profile card):
