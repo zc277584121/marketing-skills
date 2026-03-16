@@ -9,6 +9,7 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | Skill | Description |
 |-------|-------------|
 | [`chrome-automation`](./skills/chrome-automation/) | Automate Chrome browser tasks using the [agent-browser](https://github.com/vercel-labs/agent-browser) CLI. Navigate pages, fill forms, click buttons, extract data, and replay recorded workflows. |
+| [`browser-screenshot`](./skills/browser-screenshot/) | Take focused, region-specific screenshots from web pages. Navigates to the right page based on context (URL, search query, social media post) and crops to the target region. |
 
 ### Video Processing
 
