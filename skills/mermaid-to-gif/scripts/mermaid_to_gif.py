@@ -29,7 +29,7 @@ from pathlib import Path
 
 MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
 
-STYLES = ["progressive", "highlight-walk", "pulse-flow", "fade-in"]
+STYLES = ["progressive", "highlight-walk", "pulse-flow", "wave"]
 DEFAULT_STYLE = "progressive"
 DEFAULT_FPS = 10
 DEFAULT_DURATION = 4.0
@@ -172,8 +172,8 @@ ELEMENT_COLLECTION_JS = """
 
 def _style_js_progressive() -> str:
     return """
-    // Progressive: node-edge-node interleaved with stroke-draw for edges
-    // Build timeline: clusters first, then interleave nodes and edges
+    // Progressive: all elements visible but dimmed, activate sequentially
+    // Edges draw in with stroke animation, nodes brighten on activation
     var timeline = [];
 
     clusters.forEach(function(c) {
@@ -183,7 +183,6 @@ def _style_js_progressive() -> str:
     var eIdx = 0, lIdx = 0;
     nodes.forEach(function(n) {
         timeline.push({ el: n.el, type: 'node' });
-        // After each node, attach the next edge + its label
         if (eIdx < edges.length) {
             timeline.push({ el: edges[eIdx].el, type: 'edge' });
             eIdx++;
@@ -193,14 +192,11 @@ def _style_js_progressive() -> str:
             lIdx++;
         }
     });
-    // Remaining edges and labels
     while (eIdx < edges.length) {
-        timeline.push({ el: edges[eIdx].el, type: 'edge' });
-        eIdx++;
+        timeline.push({ el: edges[eIdx].el, type: 'edge' }); eIdx++;
     }
     while (lIdx < edgeLabels.length) {
-        timeline.push({ el: edgeLabels[lIdx].el, type: 'label' });
-        lIdx++;
+        timeline.push({ el: edgeLabels[lIdx].el, type: 'label' }); lIdx++;
     }
 
     // Assign timing
@@ -208,10 +204,10 @@ def _style_js_progressive() -> str:
         item.appearAt = (i / timeline.length) * 0.85;
     });
 
-    // Setup initial state
+    // Initial state: everything visible but dimmed; edges have stroke hidden
+    var dimOpacity = 0.25;
     timeline.forEach(function(item) {
-        item.el.style.opacity = '0';
-        // Prepare stroke-draw for edges
+        item.el.style.opacity = String(dimOpacity);
         if (item.type === 'edge') {
             var path = item.el.querySelector('path');
             if (path) {
@@ -223,36 +219,25 @@ def _style_js_progressive() -> str:
                     item._pathLen = len;
                 } catch(e) {}
             }
-            // Also handle the marker/arrowhead - hide it initially
-            var marker = item.el.querySelector('defs marker path, marker path');
-            if (marker) {
-                item._marker = marker;
-                marker.style.opacity = '0';
-            }
         }
     });
 
-    var fadeWidth = 0.10;
+    var activateWidth = 0.08;
 
     window.setProgress = function(t) {
         timeline.forEach(function(item) {
             if (t >= item.appearAt) {
-                var local = Math.min(1, (t - item.appearAt) / fadeWidth);
-                item.el.style.opacity = String(local);
-                // Stroke-draw effect for edges
+                var local = Math.min(1, (t - item.appearAt) / activateWidth);
+                // Brighten from dim to full
+                item.el.style.opacity = String(dimOpacity + (1 - dimOpacity) * local);
+                // Draw edge stroke
                 if (item._path && item._pathLen) {
                     item._path.style.strokeDashoffset = String(item._pathLen * (1 - local));
                 }
-                if (item._marker) {
-                    item._marker.style.opacity = local > 0.8 ? '1' : '0';
-                }
             } else {
-                item.el.style.opacity = '0';
+                item.el.style.opacity = String(dimOpacity);
                 if (item._path && item._pathLen) {
                     item._path.style.strokeDashoffset = String(item._pathLen);
-                }
-                if (item._marker) {
-                    item._marker.style.opacity = '0';
                 }
             }
         });
@@ -335,14 +320,42 @@ def _style_js_pulse_flow() -> str:
     """
 
 
-def _style_js_fade_in() -> str:
+def _style_js_wave() -> str:
     return """
-    // Fade in: whole diagram fades in with easing
-    svg.style.opacity = '0';
+    // Wave: all elements fully visible, a scale-pulse ripple sweeps through
+    elements.forEach(function(item) { item.el.style.opacity = '1'; });
+
+    // Build same interleaved timeline for wave order
+    var timeline = [];
+    clusters.forEach(function(c) { timeline.push(c.el); });
+    var eIdx = 0, lIdx = 0;
+    nodes.forEach(function(n) {
+        timeline.push(n.el);
+        if (eIdx < edges.length) { timeline.push(edges[eIdx].el); eIdx++; }
+        if (lIdx < edgeLabels.length) { timeline.push(edgeLabels[lIdx].el); lIdx++; }
+    });
+    while (eIdx < edges.length) { timeline.push(edges[eIdx].el); eIdx++; }
+    while (lIdx < edgeLabels.length) { timeline.push(edgeLabels[lIdx].el); lIdx++; }
+
+    // Each element gets a trigger time
+    var triggers = timeline.map(function(el, i) {
+        return { el: el, triggerAt: (i / timeline.length) * 0.8 };
+    });
+
+    var pulseWidth = 0.10;
 
     window.setProgress = function(t) {
-        var ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        svg.style.opacity = String(ease);
+        triggers.forEach(function(item) {
+            var dt = t - item.triggerAt;
+            if (dt >= 0 && dt < pulseWidth) {
+                // Brightness pulse + glow sweep (no transform to avoid position shift)
+                var phase = dt / pulseWidth;
+                var brightness = 1 + 0.4 * Math.sin(phase * Math.PI);
+                item.el.style.filter = 'brightness(' + brightness + ') drop-shadow(0 0 6px rgba(59,130,246,0.6))';
+            } else {
+                item.el.style.filter = 'none';
+            }
+        });
     };
     """
 
@@ -351,7 +364,7 @@ STYLE_JS_MAP = {
     "progressive": _style_js_progressive,
     "highlight-walk": _style_js_highlight_walk,
     "pulse-flow": _style_js_pulse_flow,
-    "fade-in": _style_js_fade_in,
+    "wave": _style_js_wave,
 }
 
 
