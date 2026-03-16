@@ -36,7 +36,8 @@ DEFAULT_DURATION = 4.0
 DEFAULT_HOLD = 1.0
 DEFAULT_BG = "#ffffff"
 DEFAULT_THEME = "default"
-DEFAULT_PADDING = 30
+DEFAULT_PADDING = 40
+DEFAULT_SCALE = 2
 
 
 # ============================================================
@@ -110,23 +111,149 @@ def detect_direction(mermaid_code: str) -> str:
 
 
 # ============================================================
+# Animation JS - shared element collection logic
+# ============================================================
+
+ELEMENT_COLLECTION_JS = """
+    // Collect elements by type separately for better animation control
+    var clusters = [];
+    var nodes = [];
+    var edges = [];
+    var edgeLabels = [];
+    var direction = '{direction}';
+
+    var sortFn = direction === 'horizontal'
+        ? function(a, b) { return (a.x - b.x) || (a.y - b.y); }
+        : function(a, b) { return (a.y - b.y) || (a.x - b.x); };
+
+    svg.querySelectorAll('.cluster').forEach(function(el) {
+        var rect = el.getBoundingClientRect();
+        clusters.push({ el: el, x: rect.x, y: rect.y });
+    });
+
+    svg.querySelectorAll('.node, .actor, [class*="note"]').forEach(function(el) {
+        var rect = el.getBoundingClientRect();
+        nodes.push({ el: el, x: rect.x, y: rect.y });
+    });
+
+    svg.querySelectorAll('.edgePath, [class*="messageLine"], .relation').forEach(function(el) {
+        var rect = el.getBoundingClientRect();
+        edges.push({ el: el, x: rect.x, y: rect.y });
+    });
+
+    svg.querySelectorAll('.edgeLabel, .messageText').forEach(function(el) {
+        var rect = el.getBoundingClientRect();
+        edgeLabels.push({ el: el, x: rect.x, y: rect.y });
+    });
+
+    nodes.sort(sortFn);
+    edges.sort(sortFn);
+    edgeLabels.sort(sortFn);
+
+    // Build a flat elements array for styles that need it
+    var elements = [].concat(clusters, nodes, edges, edgeLabels);
+
+    // Fallback: if nothing found, fade whole SVG
+    if (elements.length === 0) {
+        svg.style.opacity = '0';
+        window.setProgress = function(t) {
+            svg.style.opacity = String(Math.min(1, t * 2));
+        };
+        window.animationReady = true;
+        return;
+    }
+"""
+
+
+# ============================================================
 # Animation JS templates
 # ============================================================
 
 
 def _style_js_progressive() -> str:
     return """
-    // Progressive: elements appear one by one following flow order
-    const fadeWidth = 0.15;
-    elements.forEach(item => { item.el.style.opacity = '0'; });
+    // Progressive: node-edge-node interleaved with stroke-draw for edges
+    // Build timeline: clusters first, then interleave nodes and edges
+    var timeline = [];
+
+    clusters.forEach(function(c) {
+        timeline.push({ el: c.el, type: 'cluster' });
+    });
+
+    var eIdx = 0, lIdx = 0;
+    nodes.forEach(function(n) {
+        timeline.push({ el: n.el, type: 'node' });
+        // After each node, attach the next edge + its label
+        if (eIdx < edges.length) {
+            timeline.push({ el: edges[eIdx].el, type: 'edge' });
+            eIdx++;
+        }
+        if (lIdx < edgeLabels.length) {
+            timeline.push({ el: edgeLabels[lIdx].el, type: 'label' });
+            lIdx++;
+        }
+    });
+    // Remaining edges and labels
+    while (eIdx < edges.length) {
+        timeline.push({ el: edges[eIdx].el, type: 'edge' });
+        eIdx++;
+    }
+    while (lIdx < edgeLabels.length) {
+        timeline.push({ el: edgeLabels[lIdx].el, type: 'label' });
+        lIdx++;
+    }
+
+    // Assign timing
+    timeline.forEach(function(item, i) {
+        item.appearAt = (i / timeline.length) * 0.85;
+    });
+
+    // Setup initial state
+    timeline.forEach(function(item) {
+        item.el.style.opacity = '0';
+        // Prepare stroke-draw for edges
+        if (item.type === 'edge') {
+            var path = item.el.querySelector('path');
+            if (path) {
+                try {
+                    var len = path.getTotalLength();
+                    path.style.strokeDasharray = String(len);
+                    path.style.strokeDashoffset = String(len);
+                    item._path = path;
+                    item._pathLen = len;
+                } catch(e) {}
+            }
+            // Also handle the marker/arrowhead - hide it initially
+            var marker = item.el.querySelector('defs marker path, marker path');
+            if (marker) {
+                item._marker = marker;
+                marker.style.opacity = '0';
+            }
+        }
+    });
+
+    var fadeWidth = 0.10;
 
     window.setProgress = function(t) {
-        elements.forEach(item => {
+        timeline.forEach(function(item) {
             if (t >= item.appearAt) {
-                const local = Math.min(1, (t - item.appearAt) / fadeWidth);
+                var local = Math.min(1, (t - item.appearAt) / fadeWidth);
                 item.el.style.opacity = String(local);
+                // Stroke-draw effect for edges
+                if (item._path && item._pathLen) {
+                    item._path.style.strokeDashoffset = String(item._pathLen * (1 - local));
+                }
+                if (item._marker) {
+                    item._marker.style.opacity = local > 0.8 ? '1' : '0';
+                }
             } else {
                 item.el.style.opacity = '0';
+                if (item._path && item._pathLen) {
+                    item._path.style.strokeDashoffset = String(item._pathLen);
+                }
+                if (item._marker) {
+                    item._marker.style.opacity = '0';
+                }
             }
         });
     };
@@ -135,22 +262,37 @@ def _style_js_progressive() -> str:
 
 def _style_js_highlight_walk() -> str:
     return """
-    // Highlight walk: spotlight moves through elements sequentially
-    elements.forEach(item => { item.el.style.opacity = '0.2'; });
-    const spotWidth = Math.max(0.12, 1.5 / elements.length);
+    // Highlight walk: all visible but dimmed, spotlight moves through
+    // Build same interleaved timeline as progressive
+    var timeline = [];
+    clusters.forEach(function(c) { timeline.push({ el: c.el, type: 'cluster' }); });
+    var eIdx = 0, lIdx = 0;
+    nodes.forEach(function(n) {
+        timeline.push({ el: n.el, type: 'node' });
+        if (eIdx < edges.length) { timeline.push({ el: edges[eIdx].el, type: 'edge' }); eIdx++; }
+        if (lIdx < edgeLabels.length) { timeline.push({ el: edgeLabels[lIdx].el, type: 'label' }); lIdx++; }
+    });
+    while (eIdx < edges.length) { timeline.push({ el: edges[eIdx].el, type: 'edge' }); eIdx++; }
+    while (lIdx < edgeLabels.length) { timeline.push({ el: edgeLabels[lIdx].el, type: 'label' }); lIdx++; }
+
+    timeline.forEach(function(item, i) {
+        item.el.style.opacity = '0.15';
+        item.target = i / timeline.length;
+    });
+
+    var spotWidth = Math.max(0.1, 1.2 / timeline.length);
 
     window.setProgress = function(t) {
-        elements.forEach(item => {
-            const target = item.appearAt / 0.8;
-            const dist = Math.abs(t - target);
+        timeline.forEach(function(item) {
+            var dist = Math.abs(t - item.target);
             if (dist < spotWidth / 2) {
                 item.el.style.opacity = '1';
-                item.el.style.filter = 'drop-shadow(0 0 8px rgba(59,130,246,0.7))';
-            } else if (t > target + spotWidth / 2) {
-                item.el.style.opacity = '0.85';
+                item.el.style.filter = 'drop-shadow(0 0 8px rgba(59,130,246,0.8))';
+            } else if (t > item.target + spotWidth / 2) {
+                item.el.style.opacity = '0.9';
                 item.el.style.filter = 'none';
             } else {
-                item.el.style.opacity = '0.2';
+                item.el.style.opacity = '0.15';
                 item.el.style.filter = 'none';
             }
         });
@@ -160,27 +302,50 @@ def _style_js_highlight_walk() -> str:
 
 def _style_js_pulse_flow() -> str:
     return """
-    // Pulse flow: edges show flowing dashes, nodes pulse
-    elements.forEach(item => { item.el.style.opacity = '1'; });
+    // Pulse flow: flowing bright segment along edges, subtle node pulse
+    // All elements fully visible
+    elements.forEach(function(item) { item.el.style.opacity = '1'; });
 
-    const paths = [];
-    svg.querySelectorAll('[class*="edgePath"] path, [class*="messageLine"]').forEach(path => {
+    // Setup edge flow animation
+    var flowPaths = [];
+    svg.querySelectorAll('[class*="edgePath"] path, [class*="messageLine"]').forEach(function(path) {
         try {
-            const length = path.getTotalLength();
-            path.style.strokeDasharray = (length * 0.15) + ' ' + (length * 0.08);
-            paths.push({ el: path, length: length });
+            var len = path.getTotalLength();
+            // Store original stroke
+            var cs = getComputedStyle(path);
+            var origColor = cs.stroke || '#333';
+            var origWidth = parseFloat(cs.strokeWidth) || 1.5;
+
+            // Create overlay for flowing highlight
+            var overlay = path.cloneNode(true);
+            overlay.style.stroke = '#3b82f6';
+            overlay.style.strokeWidth = String(origWidth * 2.5);
+            overlay.style.strokeOpacity = '0.6';
+            overlay.style.fill = 'none';
+            overlay.style.strokeDasharray = (len * 0.18) + ' ' + (len * 0.82);
+            overlay.style.strokeDashoffset = String(len);
+            overlay.style.pointerEvents = 'none';
+            path.parentNode.appendChild(overlay);
+
+            flowPaths.push({ overlay: overlay, length: len });
         } catch(e) {}
     });
 
-    const nodeEls = elements.filter(e => e.type === 'node');
+    // Collect nodes for pulse
+    var pulseNodes = [];
+    svg.querySelectorAll('.node, .actor').forEach(function(el) {
+        pulseNodes.push(el);
+    });
 
     window.setProgress = function(t) {
-        paths.forEach(function(p) {
-            p.el.style.strokeDashoffset = String(p.length * (1 - (t * 3) % 1));
+        // Flowing highlight on edges (loops twice per cycle for visibility)
+        flowPaths.forEach(function(fp) {
+            fp.overlay.style.strokeDashoffset = String(fp.length * (1 - (t * 2) % 1));
         });
-        nodeEls.forEach(function(item, i) {
-            const phase = (t * 4 + i * 0.25) % 1;
-            item.el.style.opacity = String(0.7 + 0.3 * Math.sin(phase * Math.PI * 2));
+        // Subtle node pulse
+        pulseNodes.forEach(function(el, i) {
+            var phase = (t * 3 + i * 0.2) % 1;
+            el.style.opacity = String(0.8 + 0.2 * Math.sin(phase * Math.PI * 2));
         });
     };
     """
@@ -224,7 +389,9 @@ def generate_html(
     style_setup = STYLE_JS_MAP[style]()
     escaped_code = html_lib.escape(mermaid_code)
 
-    # Use double-brace escaping for JS braces inside f-string
+    # Element collection JS with direction substituted
+    collection_js = ELEMENT_COLLECTION_JS.replace("{direction}", direction)
+
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -236,6 +403,7 @@ def generate_html(
     background: {bg_color};
     display: inline-block;
     padding: {padding}px;
+    font-size: 16px;
   }}
   .mermaid svg {{ display: block; }}
   {custom_css}
@@ -248,7 +416,8 @@ def generate_html(
     mermaid.initialize({{
         startOnLoad: false,
         theme: '{theme}',
-        securityLevel: 'loose'
+        securityLevel: 'loose',
+        fontSize: 16
     }});
 
     try {{
@@ -264,58 +433,21 @@ def generate_html(
         return;
     }}
 
-    // Collect animatable elements
-    var elements = [];
-    var direction = '{direction}';
-
-    // Clusters (show first as background)
-    svg.querySelectorAll('.cluster').forEach(function(el) {{
-        var rect = el.getBoundingClientRect();
-        elements.push({{ el: el, x: rect.x, y: rect.y, type: 'cluster' }});
-    }});
-
-    // Nodes
-    svg.querySelectorAll('.node, .actor, [class*="note"]').forEach(function(el) {{
-        var rect = el.getBoundingClientRect();
-        elements.push({{ el: el, x: rect.x, y: rect.y, type: 'node' }});
-    }});
-
-    // Edges
-    svg.querySelectorAll('.edgePath, [class*="messageLine"], .relation').forEach(function(el) {{
-        var rect = el.getBoundingClientRect();
-        elements.push({{ el: el, x: rect.x, y: rect.y, type: 'edge' }});
-    }});
-
-    // Labels
-    svg.querySelectorAll('.edgeLabel, .messageText').forEach(function(el) {{
-        var rect = el.getBoundingClientRect();
-        elements.push({{ el: el, x: rect.x, y: rect.y, type: 'label' }});
-    }});
-
-    // Fallback: if no elements found, fade whole SVG
-    if (elements.length === 0) {{
-        svg.style.opacity = '0';
-        window.setProgress = function(t) {{
-            svg.style.opacity = String(Math.min(1, t * 2));
-        }};
-        window.animationReady = true;
-        return;
+    // Scale up small SVGs for better readability (check rendered CSS size)
+    var minSvgWidth = 700;
+    var svgRect = svg.getBoundingClientRect();
+    if (svgRect.width > 0 && svgRect.width < minSvgWidth) {{
+        var ratio = minSvgWidth / svgRect.width;
+        var newW = Math.ceil(svgRect.width * ratio);
+        var newH = Math.ceil(svgRect.height * ratio);
+        svg.setAttribute('width', newW);
+        svg.setAttribute('height', newH);
+        svg.style.width = newW + 'px';
+        svg.style.height = newH + 'px';
+        svg.style.maxWidth = 'none';
     }}
 
-    // Sort by position (respects diagram flow direction)
-    elements.sort(function(a, b) {{
-        if (a.type === 'cluster' && b.type !== 'cluster') return -1;
-        if (b.type === 'cluster' && a.type !== 'cluster') return 1;
-        if (direction === 'horizontal') {{
-            return (a.x - b.x) || (a.y - b.y);
-        }}
-        return (a.y - b.y) || (a.x - b.x);
-    }});
-
-    // Assign timing: spread across 0 to 0.8 of total duration
-    elements.forEach(function(item, i) {{
-        item.appearAt = (i / elements.length) * 0.8;
-    }});
+    {collection_js}
 
     // ---- Style-specific animation logic ----
     {style_setup}
@@ -339,6 +471,7 @@ def capture_frames(
     fps: int,
     duration: float,
     hold: float,
+    scale: int = 2,
 ) -> int:
     """Use Playwright to capture animation frames. Returns total frame count."""
     from playwright.sync_api import sync_playwright
@@ -348,22 +481,30 @@ def capture_frames(
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
-        page = browser.new_page()
+        # Use deviceScaleFactor for high-DPI rendering
+        context = browser.new_context(device_scale_factor=scale)
+        page = context.new_page()
+        # Set a wide initial viewport so Mermaid has room to render
+        page.set_viewport_size({"width": 1400, "height": 900})
         page.goto(f"file://{html_path}")
         page.wait_for_function("window.animationReady === true", timeout=20000)
 
-        # Resize viewport to fit rendered content
+        # Shrink viewport to fit actual rendered content
         size = page.evaluate(
             """() => {
+            var svg = document.querySelector('svg');
+            if (!svg) return { width: 800, height: 400 };
+            var rect = svg.getBoundingClientRect();
             var body = document.body;
+            var pad = parseFloat(getComputedStyle(body).padding) || 0;
             return {
-                width: Math.ceil(body.scrollWidth),
-                height: Math.ceil(body.scrollHeight)
+                width: Math.ceil(rect.width + pad * 2),
+                height: Math.ceil(rect.height + pad * 2)
             };
         }"""
         )
-        vw = max(200, min(size["width"], 2400))
-        vh = max(150, min(size["height"], 1600))
+        vw = max(400, min(size["width"], 2400))
+        vh = max(200, min(size["height"], 1600))
         page.set_viewport_size({"width": vw, "height": vh})
 
         # Capture animation frames
@@ -377,6 +518,7 @@ def capture_frames(
             idx = anim_frames + 1 + j
             page.screenshot(path=os.path.join(frames_dir, f"frame_{idx:04d}.png"))
 
+        context.close()
         browser.close()
 
     return anim_frames + 1 + hold_frames
@@ -444,6 +586,7 @@ def process_diagram(
     loop: int,
     output_dir: str,
     custom_css: str,
+    scale: int = 2,
 ) -> str:
     """Process a single Mermaid diagram and return output GIF path."""
     output_path = os.path.join(output_dir, f"{name}.gif")
@@ -457,7 +600,7 @@ def process_diagram(
         # Capture frames
         frames_dir = os.path.join(tmpdir, "frames")
         os.makedirs(frames_dir)
-        frame_count = capture_frames(html_path, frames_dir, fps, duration, hold)
+        frame_count = capture_frames(html_path, frames_dir, fps, duration, hold, scale)
 
         # Assemble GIF
         assemble_gif(frames_dir, output_path, fps, loop)
@@ -526,6 +669,12 @@ Examples:
         help=f"Padding around diagram in pixels (default: {DEFAULT_PADDING})",
     )
     parser.add_argument(
+        "--scale",
+        type=int,
+        default=DEFAULT_SCALE,
+        help=f"Render scale factor for resolution (default: {DEFAULT_SCALE}, 2=retina)",
+    )
+    parser.add_argument(
         "--custom-css",
         help="Path to custom CSS file for additional styling",
     )
@@ -575,6 +724,7 @@ Examples:
                     loop=loop,
                     output_dir=output_dir,
                     custom_css=custom_css,
+                    scale=args.scale,
                 )
                 results.append(gif_path)
             except Exception as e:

@@ -20,6 +20,47 @@ Convert Mermaid diagrams into animated GIFs with rich animation effects. Support
 
 ---
 
+## Context-Aware Style Selection
+
+**IMPORTANT**: When converting mermaid blocks from `.md` files, read the surrounding markdown context to choose the most appropriate animation style for each diagram. Do NOT blindly apply the same style to all blocks.
+
+### Decision Guide
+
+1. **Read the markdown text around each mermaid block** — understand what the diagram is illustrating
+2. **Match the style to the semantic meaning**:
+
+| Context Clue | Recommended Style | Reasoning |
+|--------------|------------------|-----------|
+| Data pipeline, ETL flow, request/response path | `pulse-flow` | Flowing highlight along edges conveys data movement |
+| Architecture layers, org chart, hierarchy | `progressive` | Layer-by-layer reveal matches the structure |
+| Step-by-step process, tutorial walkthrough | `highlight-walk` | Spotlight guides the reader through each step |
+| System overview, title diagram, simple reference | `fade-in` | Clean reveal without distraction |
+| Sequence diagram with message flow | `progressive` | Messages appear one by one in conversation order |
+| Class/ER diagram (reference/static) | `progressive` or `fade-in` | Structure builds up or appears cleanly |
+
+3. **Consider special handling**:
+   - If the surrounding text says "data flows from A to B", use `pulse-flow` even for a simple flowchart
+   - If the text describes "three layers" or "two tiers", use `progressive` to reveal layer-by-layer
+   - If the diagram is decorative or supplementary, use `fade-in` to keep it simple
+   - For very large or complex diagrams, prefer `fade-in` or shorter `--duration` to keep GIF size reasonable
+
+4. **Per-block style override**: When batch-processing a `.md` file, you may need to run the script multiple times with different styles, extracting specific blocks. Or process the whole file with a sensible default and re-run individual blocks that need different treatment.
+
+### Example: Context-Aware Processing
+
+```markdown
+## Data Ingestion Pipeline        ← context: "pipeline" → pulse-flow
+[mermaid block: graph LR with ETL stages]
+
+## System Architecture            ← context: "architecture" → progressive
+[mermaid block: graph TD with layers]
+
+## Quick Reference                ← context: "reference" → fade-in
+[mermaid block: simple diagram]
+```
+
+---
+
 ## Default Workflow
 
 ### Single .mmd file
@@ -31,7 +72,7 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd
 ### Markdown file with mermaid blocks
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py document.md -o ./gifs/
+python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py document.md -o ./images/
 ```
 
 This extracts all ` ```mermaid ` code blocks and generates one GIF per block.
@@ -43,24 +84,33 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py *.mmd -o ./gifs/
 python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py doc1.md doc2.md -o ./gifs/
 ```
 
+### Replacing mermaid blocks in markdown
+
+After generating GIFs, replace the original ` ```mermaid ` code blocks with image references:
+
+```markdown
+![Flow Diagram](images/document-1.gif)
+```
+
+Use descriptive alt text based on the diagram content. The image path should be relative to the markdown file.
+
 ---
 
 ## Animation Styles
 
 | Style | Effect | Best For |
 |-------|--------|----------|
-| `progressive` (default) | Nodes and edges appear sequentially following diagram flow | Flowcharts, architecture diagrams |
-| `highlight-walk` | All elements dimmed; a spotlight moves through each element in order | Step-by-step process explanations |
-| `pulse-flow` | Edges show flowing dash animation, nodes pulse rhythmically | Data flow, pipeline diagrams |
-| `fade-in` | Whole diagram fades in with easing | Simple reveals, title slides |
+| `progressive` (default) | Nodes and edges appear sequentially; edges draw in with stroke animation | Flowcharts, architecture, hierarchy |
+| `highlight-walk` | All elements dimmed; a spotlight with glow moves through each element | Step-by-step process, tutorials |
+| `pulse-flow` | Flowing bright highlight along edges, nodes pulse subtly | Data flow, pipelines, request paths |
+| `fade-in` | Whole diagram fades in with easing | Simple reveals, reference diagrams |
 
-```bash
-# Use highlight-walk style
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --style highlight-walk
+### Animation Details
 
-# Use pulse-flow for pipeline diagrams
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py pipeline.mmd --style pulse-flow
-```
+- **progressive**: Nodes appear with their text as a unit. Edges draw in using stroke-dashoffset animation (line visibly extends from start to end). Elements are interleaved: node → edge → node → edge, following the diagram's flow direction.
+- **highlight-walk**: All elements start at 15% opacity. A spotlight (with blue glow) moves through elements in order, leaving visited elements at 90% opacity.
+- **pulse-flow**: All elements fully visible. A blue highlight segment flows continuously along each edge. Nodes pulse with subtle opacity oscillation.
+- **fade-in**: Entire SVG fades from 0 to 100% opacity with ease-in-out curve.
 
 ---
 
@@ -75,7 +125,8 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py pipeline.mmd --style pulse
 | `--hold` | `1.0` | Hold last frame before looping (seconds) |
 | `--theme` | `default` | Mermaid theme: default, dark, forest, neutral |
 | `--bg` | `#ffffff` | Background color (hex) |
-| `--padding` | `30` | Padding around diagram in pixels |
+| `--padding` | `40` | Padding around diagram in pixels |
+| `--scale` | `2` | Render scale factor (2 = retina quality) |
 | `--custom-css` | — | Path to custom CSS file |
 | `--no-loop` | — | Play GIF once instead of looping |
 
@@ -98,6 +149,9 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --custom-css m
 
 # No loop, suitable for one-time playback
 python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py intro.mmd --no-loop --duration 6
+
+# Lower resolution for smaller file size
+python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --scale 1
 ```
 
 ---
@@ -136,12 +190,11 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --custom-css m
 
 1. **Parse input** — extract Mermaid code from `.mmd` or `.md` files
 2. **Generate HTML** — embed Mermaid.js (CDN) + animation JS/CSS in a self-contained HTML file
-3. **Render** — Mermaid.js renders the diagram to SVG in headless Chromium via Playwright
-4. **Animate** — JS animation engine exposes `setProgress(t)` for frame-by-frame control (t: 0→1)
-5. **Capture** — Playwright takes a screenshot at each frame step
-6. **Assemble** — FFmpeg two-pass palette encoding (palettegen → paletteuse with Floyd-Steinberg dithering)
-
-The animation engine collects all SVG elements (nodes, edges, labels, clusters), sorts them by position respecting diagram flow direction (LR/TB), and assigns each element an appearance time. This creates a natural "building up" effect.
+3. **Render** — Mermaid.js renders the diagram to SVG in headless Chromium via Playwright (with 2x device scale for retina quality)
+4. **Scale** — small SVGs are automatically scaled up to minimum 700px CSS width for readability
+5. **Animate** — JS animation engine exposes `setProgress(t)` for frame-by-frame control (t: 0→1). Elements are collected, sorted by position (respecting LR/TB direction), and animated in interleaved node-edge order
+6. **Capture** — Playwright takes a screenshot at each frame step
+7. **Assemble** — FFmpeg two-pass palette encoding (palettegen → paletteuse with Floyd-Steinberg dithering)
 
 ---
 
@@ -150,5 +203,5 @@ The animation engine collects all SVG elements (nodes, edges, labels, clusters),
 - **Internet required**: Mermaid.js is loaded from CDN at render time
 - **Supported diagram types**: flowchart, sequence, class, state, ER, gitgraph, mindmap, pie, gantt, and more
 - **Fallback behavior**: for unrecognized diagram types or when no animatable elements are detected, falls back to a whole-diagram fade-in
-- **Large diagrams**: complex diagrams produce more frames and larger GIFs — consider shorter `--duration` or lower `--fps`
-- **GIF size**: for very large outputs, reduce FPS to 8, shorten duration, or use a simpler style like `fade-in`
+- **Resolution**: default scale=2 produces retina-quality images (~1400-1600px wide). Use `--scale 1` for smaller files
+- **GIF size**: for very large outputs, reduce FPS to 8, shorten duration, use `--scale 1`, or use a simpler style like `fade-in`
