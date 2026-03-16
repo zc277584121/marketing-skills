@@ -314,9 +314,9 @@ def _style_js_pulse_flow() -> str:
             var cs = getComputedStyle(path);
             var origWidth = parseFloat(cs.strokeWidth) || 1.5;
 
-            // Set dashed pattern: short dash + gap, looks like flowing dots/dashes
-            var dashLen = Math.max(8, len * 0.04);
-            var gapLen = Math.max(5, len * 0.025);
+            // Fixed dash + gap size for consistent look across all edges
+            var dashLen = 10;
+            var gapLen = 6;
             path.style.strokeDasharray = dashLen + ' ' + gapLen;
             path.style.strokeWidth = String(Math.max(origWidth, 2));
 
