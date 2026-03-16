@@ -107,44 +107,38 @@ def compute_nonsilent_segments(
 def export_video(
     input_file: str, segments: list[tuple[float, float]], output_file: str
 ) -> None:
-    """Cut and concatenate non-silent segments using FFmpeg."""
+    """Cut and concatenate non-silent segments using FFmpeg.
+
+    Uses trim/atrim filters for frame-accurate cuts with proper A/V sync.
+    Re-encodes the video (necessary for precise, non-keyframe-aligned cuts).
+    """
     if not segments:
         print("No non-silent segments found. The entire video appears silent.")
         sys.exit(1)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        part_files = []
+    # Build a single filtergraph: trim each segment, then concat all
+    filter_parts = []
+    concat_inputs = []
 
-        for i, (start, end) in enumerate(segments):
-            part_path = os.path.join(tmpdir, f"part_{i:04d}.ts")
-            duration = end - start
-            cmd = [
-                "ffmpeg", "-y",
-                "-ss", f"{start:.3f}",
-                "-i", input_file,
-                "-t", f"{duration:.3f}",
-                "-c", "copy",
-                "-avoid_negative_ts", "make_zero",
-                part_path
-            ]
-            subprocess.run(cmd, capture_output=True, check=True)
-            part_files.append(part_path)
+    for i, (start, end) in enumerate(segments):
+        filter_parts.append(
+            f"[0:v]trim=start={start:.3f}:end={end:.3f},setpts=PTS-STARTPTS[v{i}];"
+            f"[0:a]atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS[a{i}];"
+        )
+        concat_inputs.append(f"[v{i}][a{i}]")
 
-        # Create concat list
-        concat_file = os.path.join(tmpdir, "concat.txt")
-        with open(concat_file, "w") as f:
-            for pf in part_files:
-                f.write(f"file '{pf}'\n")
+    n = len(segments)
+    filter_str = "".join(filter_parts)
+    filter_str += f"{''.join(concat_inputs)}concat=n={n}:v=1:a=1[outv][outa]"
 
-        # Concatenate
-        cmd = [
-            "ffmpeg", "-y",
-            "-f", "concat", "-safe", "0",
-            "-i", concat_file,
-            "-c", "copy",
-            output_file
-        ]
-        subprocess.run(cmd, capture_output=True, check=True)
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_file,
+        "-filter_complex", filter_str,
+        "-map", "[outv]", "-map", "[outa]",
+        output_file
+    ]
+    subprocess.run(cmd, capture_output=True, check=True)
 
 
 def format_time(seconds: float) -> str:
