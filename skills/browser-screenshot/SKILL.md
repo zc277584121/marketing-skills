@@ -15,10 +15,61 @@ Take focused screenshots of specific regions on web pages — a Reddit post, a t
 
 This skill handles the full pipeline:
 
-1. **Understand** what the user wants to capture
-2. **Navigate** to the right page (URL, search, or platform-specific routing)
+1. **Research** the best page to screenshot (web search, fetch)
+2. **Navigate** to the right page in the browser
 3. **Locate** the target element/region on the page
 4. **Capture** a focused, cropped screenshot of just that region
+
+### Hard Rule: No Full-Screen Screenshots
+
+**NEVER output an uncropped full-viewport or full-page screenshot as a final result.** Full screenshots contain too much noise (nav bars, sidebars, ads, unrelated content) and are unsuitable as article illustrations. Every screenshot MUST be cropped to a focused region.
+
+---
+
+## Step 0: Research — Find the Right Page First
+
+Before opening anything in the browser, figure out **which page** to screenshot. Use WebSearch and WebFetch tools (not the browser) for this research phase — they're faster and don't require tab management.
+
+### Page Selection Strategy
+
+The right page depends on the context of the article and how recent/notable the subject is:
+
+| Subject Type | Best Page to Find | How to Find It |
+|--------------|-------------------|----------------|
+| **New model/feature launch** (< 6 months) | Official blog post announcing it | WebSearch `"<model name>" site:<vendor-domain> blog` |
+| **Established product** (> 6 months) | Product landing page or docs overview | WebSearch `"<model name>" official page` |
+| **Open-source model** | HuggingFace model card or GitHub repo | Direct URL: `huggingface.co/<org>/<model>` |
+| **API service** | API documentation page | WebSearch `"<service name>" API docs` |
+
+### What Makes a Good Screenshot Source
+
+- **Official blog posts** are ideal: they have hero images, prominent titles, and concise descriptions designed for sharing
+- **Product landing pages** work well: hero sections with taglines and key features
+- **HuggingFace model cards** are reliable for open-source models: consistent layout, model name + description always at top
+- **API docs** are acceptable fallback: show the product name and key specs
+
+### Pre-Flight URL Validation
+
+Before opening in the browser, validate URLs with WebFetch (lightweight HEAD/GET) to avoid wasting time on 404s or redirects:
+
+```
+WebFetch: <candidate-url>
+→ Check status code, title, and content snippet
+→ If 404 or redirect to unrelated page, try next candidate
+```
+
+### Region Selection Strategy
+
+Think about **what the article reader needs to see** in this screenshot:
+
+| Article Context | What to Capture | Target Region |
+|-----------------|----------------|---------------|
+| Introducing a model in a lineup | Model name + key tagline/description | Blog hero section or HF model card header |
+| Comparing capabilities | Feature highlights or spec table | Blog section showing specs/features |
+| Discussing a specific feature | The feature description | Relevant section heading + 1-2 paragraphs |
+| Showing a product/service | Brand identity + value prop | Landing page hero (title + subtitle + visual) |
+
+The screenshot should make the reader think "ah, that's what this model/product is" — not "what am I looking at?"
 
 ---
 
@@ -172,18 +223,35 @@ Then crop (see [Cropping](#cropping)).
 
 ### Cropping
 
-Use ImageMagick to crop the screenshot to the target region. Add padding for visual breathing room.
+Use ImageMagick (`magick` on IMv7, `convert` is deprecated) to crop the screenshot to the target region. Add padding for visual breathing room.
+
+#### Retina Display Handling
+
+**Critical**: On macOS Retina displays, screenshots are captured at 2x resolution. A 1728x940 viewport produces a 3456x1880 image. You MUST account for this:
+
+1. **Detect the scale factor**: Compare viewport size vs actual image dimensions:
+   ```bash
+   # Check actual image dimensions
+   magick identify /tmp/screenshot.png
+   # → 3456x1880 means 2x scale on a 1728x940 viewport
+   ```
+
+2. **Multiply `get box` coordinates by the scale factor** before cropping:
+   ```bash
+   # get box returns viewport coordinates: { x: 200, y: 450, width: 680, height: 520 }
+   # For 2x Retina, actual image coordinates are:
+   SCALE=2
+   X=$((200 * SCALE))
+   Y=$((450 * SCALE))
+   W=$((680 * SCALE))
+   H=$((520 * SCALE))
+   PADDING=$((16 * SCALE))
+   ```
+
+#### Crop Command
 
 ```bash
-# Variables from `get box` output (round to integers)
-X=200
-Y=450
-W=680
-H=520
-PADDING=16
-
-# Crop with padding
-convert /tmp/browser-screenshot-full.png \
+magick /tmp/browser-screenshot-full.png \
   -crop $((W + PADDING*2))x$((H + PADDING*2))+$((X - PADDING))+$((Y - PADDING)) \
   +repage \
   <output-path>.png
@@ -191,7 +259,7 @@ convert /tmp/browser-screenshot-full.png \
 
 > **Important**: `get box` returns floating-point values. Round them to integers before passing to ImageMagick.
 
-> **Padding**: Use 12–20px padding. Increase to ~30px if the target has a distinct visual boundary (card, bordered box). Use 0 if the user wants a tight crop.
+> **Padding**: Use 12–20px (viewport px). Increase to ~30px if the target has a distinct visual boundary (card, bordered box). Use 0 if the user wants a tight crop.
 
 ### Output Path
 
@@ -290,6 +358,13 @@ EOF
 
 > **Use with caution**: Hiding fixed elements might remove important context. Only run this when overlays visibly obstruct the target region.
 
+### Cookie Banners That Won't Dismiss
+
+Some cookie consent banners (e.g., Jina AI's Usercentrics) live in shadow DOM or iframes and cannot be dismissed via JS `click()` or `remove()`. Don't waste time with multiple JS attempts. Instead:
+
+1. **Crop it out** — if the banner is at the top or bottom, simply adjust the crop region to exclude it. This is the fastest and most reliable approach.
+2. **Scroll past it** — scroll the target content away from the banner area before capturing.
+
 ---
 
 ## Viewport Sizing
@@ -381,6 +456,20 @@ convert /tmp/reddit-raw.png \
   agent-browser --auto-connect eval "document.querySelector('iframe').contentDocument.querySelector('<sel>').getBoundingClientRect()"
   ```
   Note: Only works for same-origin iframes.
+
+### `open` succeeded but page content is wrong
+- The browser may have switched to a different tab (e.g., a popup or redirect opened a new tab). Always verify after navigation:
+  ```bash
+  agent-browser --auto-connect eval "document.location.href"
+  ```
+- If the URL is wrong, use `tab list` to find the correct tab and `tab goto <N>` to switch.
+
+### Screenshot command times out on fonts
+- Some pages (e.g., Google developer docs) hang on `document.fonts.ready`. Force-resolve it first:
+  ```bash
+  agent-browser --auto-connect eval "document.fonts.ready.then(() => 'ok')"
+  ```
+  Then retry the screenshot.
 
 ### Page has lazy-loaded content
 - Scroll down to trigger loading before taking the screenshot:
