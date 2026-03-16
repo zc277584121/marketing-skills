@@ -302,50 +302,32 @@ def _style_js_highlight_walk() -> str:
 
 def _style_js_pulse_flow() -> str:
     return """
-    // Pulse flow: flowing bright segment along edges, subtle node pulse
+    // Pulse flow: dashed lines flowing along edges (mermaid2gif style)
     // All elements fully visible
     elements.forEach(function(item) { item.el.style.opacity = '1'; });
 
-    // Setup edge flow animation
+    // Setup flowing dashed line on edges
     var flowPaths = [];
     svg.querySelectorAll('[class*="edgePath"] path, [class*="messageLine"]').forEach(function(path) {
         try {
             var len = path.getTotalLength();
-            // Store original stroke
             var cs = getComputedStyle(path);
-            var origColor = cs.stroke || '#333';
             var origWidth = parseFloat(cs.strokeWidth) || 1.5;
 
-            // Create overlay for flowing highlight
-            var overlay = path.cloneNode(true);
-            overlay.style.stroke = '#3b82f6';
-            overlay.style.strokeWidth = String(origWidth * 2.5);
-            overlay.style.strokeOpacity = '0.6';
-            overlay.style.fill = 'none';
-            overlay.style.strokeDasharray = (len * 0.18) + ' ' + (len * 0.82);
-            overlay.style.strokeDashoffset = String(len);
-            overlay.style.pointerEvents = 'none';
-            path.parentNode.appendChild(overlay);
+            // Set dashed pattern: short dash + gap, looks like flowing dots/dashes
+            var dashLen = Math.max(8, len * 0.04);
+            var gapLen = Math.max(5, len * 0.025);
+            path.style.strokeDasharray = dashLen + ' ' + gapLen;
+            path.style.strokeWidth = String(Math.max(origWidth, 2));
 
-            flowPaths.push({ overlay: overlay, length: len });
+            flowPaths.push({ el: path, length: len });
         } catch(e) {}
     });
 
-    // Collect nodes for pulse
-    var pulseNodes = [];
-    svg.querySelectorAll('.node, .actor').forEach(function(el) {
-        pulseNodes.push(el);
-    });
-
     window.setProgress = function(t) {
-        // Flowing highlight on edges (loops twice per cycle for visibility)
+        // Continuously flowing dashes along edges
         flowPaths.forEach(function(fp) {
-            fp.overlay.style.strokeDashoffset = String(fp.length * (1 - (t * 2) % 1));
-        });
-        // Subtle node pulse
-        pulseNodes.forEach(function(el, i) {
-            var phase = (t * 3 + i * 0.2) % 1;
-            el.style.opacity = String(0.8 + 0.2 * Math.sin(phase * Math.PI * 2));
+            fp.el.style.strokeDashoffset = String(-t * fp.length * 2);
         });
     };
     """
