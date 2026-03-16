@@ -324,10 +324,12 @@ def _style_js_pulse_flow() -> str:
         } catch(e) {}
     });
 
+    // Use a fixed flow speed (pixels per unit time) so all edges move at the same pace
+    var flowSpeed = 200;
+
     window.setProgress = function(t) {
-        // Continuously flowing dashes along edges
         flowPaths.forEach(function(fp) {
-            fp.el.style.strokeDashoffset = String(-t * fp.length * 2);
+            fp.el.style.strokeDashoffset = String(-t * flowSpeed);
         });
     };
     """
