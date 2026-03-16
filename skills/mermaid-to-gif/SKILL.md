@@ -1,6 +1,6 @@
 ---
 name: mermaid-to-gif
-description: Convert Mermaid code blocks in .mmd or .md files to animated GIFs with customizable animation styles (progressive reveal, highlight walk, pulse flow, fade-in).
+description: Convert Mermaid code blocks in .mmd or .md files to animated GIFs with customizable animation styles (progressive, highlight walk, pulse flow, wave).
 ---
 
 # Skill: Mermaid to GIF
@@ -31,18 +31,18 @@ Convert Mermaid diagrams into animated GIFs with rich animation effects. Support
 
 | Context Clue | Recommended Style | Reasoning |
 |--------------|------------------|-----------|
-| Data pipeline, ETL flow, request/response path | `pulse-flow` | Flowing highlight along edges conveys data movement |
-| Architecture layers, org chart, hierarchy | `progressive` | Layer-by-layer reveal matches the structure |
+| Data pipeline, ETL flow, request/response path | `pulse-flow` | Flowing dashed lines convey data movement |
+| Architecture layers, org chart, hierarchy | `progressive` | Elements activate layer-by-layer |
 | Step-by-step process, tutorial walkthrough | `highlight-walk` | Spotlight guides the reader through each step |
-| System overview, title diagram, simple reference | `fade-in` | Clean reveal without distraction |
-| Sequence diagram with message flow | `progressive` | Messages appear one by one in conversation order |
-| Class/ER diagram (reference/static) | `progressive` or `fade-in` | Structure builds up or appears cleanly |
+| System overview, title diagram, simple reference | `wave` | Brightness ripple adds life without distraction |
+| Sequence diagram with message flow | `progressive` | Messages activate one by one in conversation order |
+| Class/ER diagram (reference/static) | `progressive` or `wave` | Structure lights up or gets a subtle ripple |
 
 3. **Consider special handling**:
    - If the surrounding text says "data flows from A to B", use `pulse-flow` even for a simple flowchart
-   - If the text describes "three layers" or "two tiers", use `progressive` to reveal layer-by-layer
-   - If the diagram is decorative or supplementary, use `fade-in` to keep it simple
-   - For very large or complex diagrams, prefer `fade-in` or shorter `--duration` to keep GIF size reasonable
+   - If the text describes "three layers" or "two tiers", use `progressive` to activate layer-by-layer
+   - If the diagram is decorative or supplementary, use `wave` to keep it simple
+   - For very large or complex diagrams, prefer `wave` or shorter `--duration` to keep GIF size reasonable
 
 4. **Per-block style override**: When batch-processing a `.md` file, you may need to run the script multiple times with different styles, extracting specific blocks. Or process the whole file with a sensible default and re-run individual blocks that need different treatment.
 
@@ -55,7 +55,7 @@ Convert Mermaid diagrams into animated GIFs with rich animation effects. Support
 ## System Architecture            ← context: "architecture" → progressive
 [mermaid block: graph TD with layers]
 
-## Quick Reference                ← context: "reference" → fade-in
+## Quick Reference                ← context: "reference" → wave
 [mermaid block: simple diagram]
 ```
 
@@ -98,19 +98,21 @@ Use descriptive alt text based on the diagram content. The image path should be 
 
 ## Animation Styles
 
+All styles keep the diagram **fully visible from frame 1** — no elements start hidden or fade in from zero. Every style adds motion while the user can see the complete diagram structure at all times.
+
 | Style | Effect | Best For |
 |-------|--------|----------|
-| `progressive` (default) | Nodes and edges appear sequentially; edges draw in with stroke animation | Flowcharts, architecture, hierarchy |
-| `highlight-walk` | All elements dimmed; a spotlight with glow moves through each element | Step-by-step process, tutorials |
-| `pulse-flow` | Flowing bright highlight along edges, nodes pulse subtly | Data flow, pipelines, request paths |
-| `fade-in` | Whole diagram fades in with easing | Simple reveals, reference diagrams |
+| `progressive` (default) | All elements start dimmed (25% opacity), activate sequentially to full brightness; edges draw in with stroke animation | Flowcharts, architecture, hierarchy |
+| `highlight-walk` | All elements start dimmed (15%); a spotlight with blue glow moves through each element, leaving visited ones bright | Step-by-step process, tutorials |
+| `pulse-flow` | All elements fully visible; edges become flowing dashed lines (uniform dash size and speed) | Data flow, pipelines, request paths |
+| `wave` | All elements fully visible; a brightness pulse + blue glow ripple sweeps through elements sequentially | Simple diagrams, overviews, reference |
 
 ### Animation Details
 
-- **progressive**: Nodes appear with their text as a unit. Edges draw in using stroke-dashoffset animation (line visibly extends from start to end). Elements are interleaved: node → edge → node → edge, following the diagram's flow direction.
-- **highlight-walk**: All elements start at 15% opacity. A spotlight (with blue glow) moves through elements in order, leaving visited elements at 90% opacity.
-- **pulse-flow**: All elements fully visible. A blue highlight segment flows continuously along each edge. Nodes pulse with subtle opacity oscillation.
-- **fade-in**: Entire SVG fades from 0 to 100% opacity with ease-in-out curve.
+- **progressive**: Elements start at 25% opacity (diagram structure always visible). Nodes, edges, and labels activate in interleaved order (node → edge → node → edge) following flow direction. Edges use stroke-dashoffset to draw in visually. Activation is fast (8% of total duration per element).
+- **highlight-walk**: All elements start at 15% opacity. A spotlight (with blue glow) moves through elements in order, leaving visited elements at 90% opacity. The whole diagram is visible as a "ghost" before the spotlight reaches each element.
+- **pulse-flow**: All elements at full opacity. Edge paths get a uniform dashed pattern (10px dash + 6px gap) that flows at a fixed speed (200px/cycle), so all edges animate at the same pace regardless of length.
+- **wave**: All elements at full opacity. A brightness pulse (1.0→1.4→1.0) with blue glow sweeps through elements sequentially. No position changes — purely a visual ripple effect.
 
 ---
 
@@ -202,6 +204,7 @@ python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --custom-css m
 
 - **Internet required**: Mermaid.js is loaded from CDN at render time
 - **Supported diagram types**: flowchart, sequence, class, state, ER, gitgraph, mindmap, pie, gantt, and more
-- **Fallback behavior**: for unrecognized diagram types or when no animatable elements are detected, falls back to a whole-diagram fade-in
+- **No hidden elements**: all 4 styles keep the diagram visible from frame 1 — no waiting for elements to appear
+- **Fallback behavior**: for unrecognized diagram types or when no animatable elements are detected, falls back to a whole-diagram opacity reveal
 - **Resolution**: default scale=2 produces retina-quality images (~1400-1600px wide). Use `--scale 1` for smaller files
-- **GIF size**: for very large outputs, reduce FPS to 8, shorten duration, use `--scale 1`, or use a simpler style like `fade-in`
+- **GIF size**: for very large outputs, reduce FPS to 8, shorten duration, use `--scale 1`, or use `wave` style
