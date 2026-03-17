@@ -1,0 +1,20 @@
+# Local Claude Code config (never push)
+CLAUDE.local.md
+
+# Project-level skill symlinks (dev mode only, not for remote)
+.claude/
+
+# npx skills generated directories (if accidentally created)
+.agents/
+skills-lock.json
+
+# Temporary files
+temp.md
+tmp/
+
+# Nurturing operation logs and scripts (local only)
+operator_history/
+/scripts/
+
+# Memory search index
+.memsearch/
