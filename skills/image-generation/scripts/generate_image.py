@@ -25,7 +25,7 @@ import sys
 import httpx
 
 DEFAULT_MODEL = "gemini-3.1-flash-image-preview"
-DEFAULT_ASPECT_RATIO = "4:3"
+DEFAULT_ASPECT_RATIO = "3:2"
 DEFAULT_IMAGE_SIZE = "1K"
 DEFAULT_STYLE_PREFIX = (
     "Use a clean, modern color palette with soft tones. "

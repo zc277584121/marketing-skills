@@ -77,7 +77,7 @@ python ${CLAUDE_SKILL_ROOT}/scripts/generate_image.py \
 | Parameter | Default | Notes |
 |-----------|---------|-------|
 | Model | `gemini-3.1-flash-image-preview` (Nano Banana 2) | Fastest with good quality |
-| Aspect ratio | `4:3` | 1184×864 px at 1K — landscape, ideal for article illustrations |
+| Aspect ratio | `3:2` | Landscape (width:height = 3:2), ideal for article illustrations |
 | Image size | `1K` | Good balance of quality and cost |
 | Style | Minimal, clean, soft tones | Auto-prepended to prompt |
 | Language | English | Prompt and in-image text |
