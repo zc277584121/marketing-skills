@@ -41,6 +41,12 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | [`remove-ai-style`](./skills/remove-ai-style/) | Review and adjust writing style to reduce AI-generated patterns, making text read more naturally. Supports Chinese and English. |
 | [`content-rewrite`](./skills/content-rewrite/) | Adapt content for different platforms (LinkedIn, X, Reddit, English blog, WeChat) with platform-specific tone, format, and length. |
 
+### Publishing
+
+| Skill | Description |
+|-------|-------------|
+| [`md-to-feishu`](./skills/md-to-feishu/) | Convert local Markdown files to Feishu (Lark) documents with automatic image uploading. Uses the feishu-docx CLI via `uvx`. |
+
 ## Quick Start
 
 Install all skills globally to **all supported AI coding agents** with one command:
