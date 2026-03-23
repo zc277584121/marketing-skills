@@ -26,9 +26,28 @@ This skill handles the full pipeline:
 
 ---
 
-## Step 0: Research — Find the Right Page First
+## Step 0: Research — Find and Validate Sources Before Opening the Browser
 
-Before opening anything in the browser, figure out **which page** to screenshot. Use WebSearch and WebFetch tools (not the browser) for this research phase — they're faster and don't require tab management.
+**The browser is for capturing, not for browsing.** Before opening anything in Chrome, use text-based tools (WebSearch, WebFetch) to find candidate pages, read their content, and decide which ones are actually worth screenshotting.
+
+### Research-First Workflow
+
+1. **WebSearch** to find candidate pages for the topic
+2. **WebFetch** each candidate to read its text content — check if it has the information/visual you need
+3. **Evaluate**: Is this page worth a screenshot? Does it have a clear, focused region that would work as an illustration?
+4. **Only then** open the browser to capture the screenshot
+
+This saves significant time — most candidate pages won't be worth screenshotting, and you can eliminate them without the overhead of browser navigation.
+
+### When to Use Browser-First Instead
+
+Skip the WebSearch/WebFetch phase and go directly to Chrome browsing when:
+
+- **The target platform requires login** — Reddit, LinkedIn, X/Twitter, and other social platforms often gate content behind login walls. If the user's Chrome session is already logged in, use the browser directly.
+- **The user specifies a platform with a clear search need** — e.g., "find a Reddit post about X" or "screenshot a tweet about Y". Go straight to the platform's search in Chrome.
+- **WebFetch returns blocked/incomplete content** — some sites aggressively block non-browser requests. If you get a 403, a CAPTCHA page, or stripped content, switch to Chrome.
+
+In these cases, Chrome browsing replaces WebSearch — navigate to the platform's search page, browse results, and evaluate pages visually before deciding what to screenshot.
 
 ### Page Selection Strategy
 
@@ -41,12 +60,22 @@ The right page depends on the context of the article and how recent/notable the 
 | **Open-source model** | HuggingFace model card or GitHub repo | Direct URL: `huggingface.co/<org>/<model>` |
 | **API service** | API documentation page | WebSearch `"<service name>" API docs` |
 
+> **Note**: This table lists common subject types but is **not exhaustive**. Apply the same research-first strategy to any subject type — find the most authoritative and visually clean source page for the topic at hand.
+
 ### What Makes a Good Screenshot Source
 
+**Core principle: Less is more. Focus on content, not chrome.**
+
+A good screenshot source contains a **focused, self-contained piece of information** — a paragraph of text, a key quote, a data table, a diagram. It should NOT be a busy page full of buttons, navigation, sidebars, and interactive elements.
+
+- **Prefer**: A section of a blog post with a clear heading and 1-2 paragraphs of text. A single chart or diagram. A model card header with name and description. A quote or key finding.
+- **Avoid**: Full landing pages with CTAs and navigation. Dashboard views with multiple panels. Pages dominated by UI controls (buttons, dropdowns, forms) rather than readable content.
 - **Official blog posts** are ideal: they have hero images, prominent titles, and concise descriptions designed for sharing
-- **Product landing pages** work well: hero sections with taglines and key features
+- **Product landing pages** can work but only if you crop to the hero section — ignore the rest
 - **HuggingFace model cards** are reliable for open-source models: consistent layout, model name + description always at top
 - **API docs** are acceptable fallback: show the product name and key specs
+
+> **Rule of thumb**: If the region you plan to capture contains more interactive UI elements (buttons, links, nav items) than readable text content, it's a bad crop. Find a more content-rich region, or pick a different page entirely.
 
 ### Pre-Flight URL Validation
 

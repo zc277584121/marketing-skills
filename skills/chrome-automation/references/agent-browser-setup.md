@@ -74,7 +74,7 @@ agent-browser --cdp 9222 open https://example.com
 
 ```bash
 # List all open tabs — if this works, you're connected
-agent-browser --auto-connect tabs
+agent-browser --auto-connect tab
 ```
 
 ---
