@@ -7,7 +7,7 @@ description: Convert a video to multiple GIF variants with different quality/siz
 
 Convert a video file into multiple GIF variants with different parameters, so the user can visually compare and pick the best one.
 
-> **Prerequisite**: FFmpeg must be installed. gifsicle is optional (enables lossy compression variants).
+> **Prerequisite**: FFmpeg and uv must be installed. gifsicle is optional (enables lossy compression variants).
 
 ---
 
@@ -28,7 +28,7 @@ Rather than guessing, this skill generates multiple variants and lets the user d
 When the user provides a video file:
 
 ```bash
-python /path/to/skills/video-to-gif/scripts/video_to_gif.py <input.mp4>
+uv run --python 3.12 /path/to/skills/video-to-gif/scripts/video_to_gif.py <input.mp4>
 ```
 
 This generates GIFs in `<input>_gifs/` directory with the **full** preset (18 variants):
@@ -51,13 +51,13 @@ Output includes a sorted comparison table showing file size, FPS, width, and col
 
 ```bash
 # Quick comparison with fewer variants
-python .../video_to_gif.py input.mp4 --presets minimal
+uv run --python 3.12 .../video_to_gif.py input.mp4 --presets minimal
 
 # Include lossy compression (requires gifsicle)
-python .../video_to_gif.py input.mp4 --presets lossy
+uv run --python 3.12 .../video_to_gif.py input.mp4 --presets lossy
 
 # Higher quality focus
-python .../video_to_gif.py input.mp4 --presets quality
+uv run --python 3.12 .../video_to_gif.py input.mp4 --presets quality
 ```
 
 ---
@@ -81,16 +81,16 @@ python .../video_to_gif.py input.mp4 --presets quality
 
 ```bash
 # Convert first 10 seconds of a video
-python .../video_to_gif.py demo.mp4 --end 10
+uv run --python 3.12 .../video_to_gif.py demo.mp4 --end 10
 
 # Extract a specific segment
-python .../video_to_gif.py demo.mp4 --start 5 --end 15
+uv run --python 3.12 .../video_to_gif.py demo.mp4 --start 5 --end 15
 
 # Custom parameter sweep
-python .../video_to_gif.py demo.mp4 --fps 12 15 --width 480 800 --colors 256
+uv run --python 3.12 .../video_to_gif.py demo.mp4 --fps 12 15 --width 480 800 --colors 256
 
 # Lossy compression comparison (needs gifsicle)
-python .../video_to_gif.py demo.mp4 --lossy 0 30 60 100
+uv run --python 3.12 .../video_to_gif.py demo.mp4 --lossy 0 30 60 100
 ```
 
 ---

@@ -7,7 +7,7 @@ description: Post-process raw screen recordings by removing silent segments and 
 
 Post-process raw screen recordings to improve pacing — remove silent segments, then speed up the result.
 
-> **Prerequisite**: FFmpeg and Python 3 must be installed.
+> **Prerequisite**: FFmpeg and uv must be installed.
 
 ---
 
@@ -15,6 +15,7 @@ Post-process raw screen recordings to improve pacing — remove silent segments,
 
 The user has recorded a screencast and wants to clean it up before publishing. Typical issues in raw recordings:
 - Long pauses / dead air while thinking or waiting for loading
+- Keyboard typing sounds and other low-level background noise that should be treated as silence
 - Overall pacing feels slow and could benefit from a slight speed boost
 
 ---
@@ -26,22 +27,22 @@ When the user provides a raw video file, **run both scripts in sequence** by def
 ### Step 1: Remove Silent Segments
 
 ```bash
-python /path/to/skills/raw-video-processing/scripts/remove_silence.py <input.mp4>
+uv run --python 3.12 /path/to/skills/raw-video-processing/scripts/remove_silence.py <input.mp4> -t="-20dB" -d 0.5
 ```
 
-This detects and cuts out silent portions, producing `<input>_nosilence.mp4`.
+This detects and cuts out silent portions (including keyboard sounds), producing `<input>_nosilence.mp4`.
 
-**Default parameters** (good for most screencasts):
-- `--threshold -30dB` — silence detection sensitivity
-- `--duration 0.8` — minimum silence length (seconds) to remove
-- `--padding 0.2` — seconds of breathing room kept around speech boundaries
+**Always pass these parameters** (tuned for screen recordings with keyboard noise):
+- `-t="-20dB"` — aggressive threshold that filters out keyboard typing and background noise (use `=` syntax to avoid argparse treating negative values as flags)
+- `-d 0.5` — remove short silences too (0.5s minimum)
+- `-p 0.2` — seconds of breathing room kept around speech boundaries (default, usually no need to pass)
 
 The script prints a detailed summary: number of silent segments found, total silence removed, and all kept segments with timestamps. Review this output to confirm the result looks reasonable.
 
 ### Step 2: Speed Up the Video
 
 ```bash
-python /path/to/skills/raw-video-processing/scripts/speed_video.py <input>_nosilence.mp4
+uv run --python 3.12 /path/to/skills/raw-video-processing/scripts/speed_video.py <input>_nosilence.mp4
 ```
 
 This applies a speed multiplier to the silence-removed video, producing `<input>_nosilence_1.2x.mp4`.
@@ -58,8 +59,8 @@ This applies a speed multiplier to the silence-removed video, producing `<input>
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-o`, `--output` | `<input>_nosilence.mp4` | Custom output path |
-| `-t`, `--threshold` | `-30dB` | Silence threshold in dB (lower = more sensitive) |
-| `-d`, `--duration` | `0.8` | Minimum silence duration in seconds to remove |
+| `-t`, `--threshold` | `-30dB` | Silence threshold in dB (higher = more aggressive). **Always use `-20dB` for screencasts** — pass as `-t="-20dB"` to avoid argparse issues with negative values |
+| `-d`, `--duration` | `0.8` | Minimum silence duration in seconds to remove. **Use `0.5` for screencasts** |
 | `-p`, `--padding` | `0.2` | Padding kept around non-silent segments |
 | `--dry-run` | off | Only print detected segments, don't export |
 
@@ -76,7 +77,8 @@ This applies a speed multiplier to the silence-removed video, producing `<input>
 
 - **Only remove silence** — run just Step 1.
 - **Only speed up** — run just Step 2 directly on the input file.
-- **Aggressive cleanup** — use `--threshold -25dB --duration 0.5` for stricter silence removal, and `--speed 1.5` for faster playback.
+- **Conservative cleanup** — use `-t="-30dB" -d 0.8` if the default is cutting too much speech.
+- **Extra aggressive cleanup** — use `-t="-15dB" -d 0.3` and `--speed 1.5` for maximum compression.
 - **Preview before committing** — use `--dry-run` on remove_silence.py to see what would be cut without creating a file.
 - **Custom output name** — use `-o` on either script to control the output path.
 
