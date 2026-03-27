@@ -16,6 +16,7 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | Skill | Description |
 |-------|-------------|
 | [`raw-video-processing`](./skills/raw-video-processing/) | Post-process raw screen recordings by removing silent segments and applying speed adjustments. |
+| [`video-enhancement`](./skills/video-enhancement/) | Enhance screen recordings with zoom, highlight, and pan effects. Uses ASR + visual analysis + Claude subagent for intelligent enhancement planning with human review. |
 | [`video-to-gif`](./skills/video-to-gif/) | Convert a video to multiple GIF variants with different quality/size tradeoffs for visual comparison. |
 
 ### Image Processing
