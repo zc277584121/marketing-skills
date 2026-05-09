@@ -1,6 +1,6 @@
 # marketing-skills
 
-A collection of Claude Code skills for marketing automation tasks — browser automation, content workflows, and more.
+A collection of reusable skills for Claude Code, Codex CLI, and other coding agents — browser automation, content workflows, and more.
 
 ## Available Skills
 
@@ -16,7 +16,6 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 | Skill | Description |
 |-------|-------------|
 | [`raw-video-processing`](./skills/raw-video-processing/) | Post-process raw screen recordings by removing silent segments and applying speed adjustments. |
-| [`video-enhancement`](./skills/video-enhancement/) | Enhance screen recordings with zoom, highlight, and pan effects. Uses ASR + visual analysis + Claude subagent for intelligent enhancement planning with human review. |
 | [`video-to-gif`](./skills/video-to-gif/) | Convert a video to multiple GIF variants with different quality/size tradeoffs for visual comparison. |
 
 ### Image Processing
@@ -50,7 +49,7 @@ A collection of Claude Code skills for marketing automation tasks — browser au
 
 ## Quick Start
 
-Install all skills globally to **all supported AI coding agents** with one command:
+Install all skills globally to **all supported coding agents** with one command:
 
 ```bash
 npx skills add zc277584121/marketing-skills --all -g
@@ -80,13 +79,13 @@ npx skills add zc277584121/marketing-skills --all
 
 ```bash
 npx skills add zc277584121/marketing-skills -a claude-code -g
-npx skills add zc277584121/marketing-skills -a cursor -g
 npx skills add zc277584121/marketing-skills -a codex -g
+npx skills add zc277584121/marketing-skills -a cursor -g
 ```
 
 Other supported agents: `windsurf`, `github-copilot`, `cline`, `roo`, `gemini-cli`, `goose`, `kilo`, `augment`, `opencode`, and [40+ more](https://skills.sh).
 
-> **Project vs Global**: Without `-g`, skills are installed into the current project directory (e.g., `.claude/skills/`). With `-g`, they go to your home directory (e.g., `~/.claude/skills/`) and are available across all projects.
+> **Project vs Global**: Without `-g`, skills are installed into the current project directory for the selected agent. With `-g`, they go to that agent's global skills directory and are available across all projects.
 
 ## Updating
 

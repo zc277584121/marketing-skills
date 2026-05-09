@@ -48,19 +48,7 @@ Where should I save the rendered Mermaid images?
 2. assets/images/
 3. docs/figures/
 4. Custom — enter a path
-
-Tip: add "remember" to save this choice to CLAUDE.local.md.
 ```
-
-If the user says "remember", save the choice to the project's `CLAUDE.local.md`:
-
-```markdown
-## Mermaid Image Output
-
-- **Image directory**: `<chosen-path>`
-```
-
-On subsequent runs, check `CLAUDE.local.md` for a `## Mermaid Image Output` section and use it directly.
 
 ### Step 3: Render each diagram to PNG
 

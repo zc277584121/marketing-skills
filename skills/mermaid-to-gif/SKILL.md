@@ -66,13 +66,13 @@ Convert Mermaid diagrams into animated GIFs with rich animation effects. Support
 ### Single .mmd file
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd
+python <skill-root>/scripts/mermaid_to_gif.py diagram.mmd
 ```
 
 ### Markdown file with mermaid blocks
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py document.md -o ./images/
+python <skill-root>/scripts/mermaid_to_gif.py document.md -o ./images/
 ```
 
 This extracts all ` ```mermaid ` code blocks and generates one GIF per block.
@@ -80,8 +80,8 @@ This extracts all ` ```mermaid ` code blocks and generates one GIF per block.
 ### Multiple files
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py *.mmd -o ./gifs/
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py doc1.md doc2.md -o ./gifs/
+python <skill-root>/scripts/mermaid_to_gif.py *.mmd -o ./gifs/
+python <skill-root>/scripts/mermaid_to_gif.py doc1.md doc2.md -o ./gifs/
 ```
 
 ### Replacing mermaid blocks in markdown
@@ -138,22 +138,22 @@ All styles keep the diagram **fully visible from frame 1** — no elements start
 
 ```bash
 # Dark theme with faster animation
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py arch.mmd --theme dark --bg "#1a1a2e" --duration 3
+python <skill-root>/scripts/mermaid_to_gif.py arch.mmd --theme dark --bg "#1a1a2e" --duration 3
 
 # High FPS for smoother animation
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py flow.mmd --fps 15 --duration 5
+python <skill-root>/scripts/mermaid_to_gif.py flow.mmd --fps 15 --duration 5
 
 # Batch convert all mermaid blocks from a doc
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py README.md -o ./images/
+python <skill-root>/scripts/mermaid_to_gif.py README.md -o ./images/
 
 # Custom CSS for special effects
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --custom-css my-style.css
+python <skill-root>/scripts/mermaid_to_gif.py diagram.mmd --custom-css my-style.css
 
 # No loop, suitable for one-time playback
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py intro.mmd --no-loop --duration 6
+python <skill-root>/scripts/mermaid_to_gif.py intro.mmd --no-loop --duration 6
 
 # Lower resolution for smaller file size
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --scale 1
+python <skill-root>/scripts/mermaid_to_gif.py diagram.mmd --scale 1
 ```
 
 ---
@@ -183,7 +183,7 @@ Create a CSS file to customize the appearance of the diagram during animation:
 Pass it via `--custom-css`:
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/mermaid_to_gif.py diagram.mmd --custom-css my-style.css
+python <skill-root>/scripts/mermaid_to_gif.py diagram.mmd --custom-css my-style.css
 ```
 
 ---

@@ -275,23 +275,23 @@ When pausing, explain clearly: what step you are on, what you expected, and what
 
 ## Multi-Platform Operations
 
-When the user requests an action across **multiple platforms** (e.g., "publish this article to Dev.to, LinkedIn, and X"), do NOT attempt all platforms in a single conversation. Instead, launch **sequential Agent subagents**, one per platform.
+When the user requests an action across **multiple platforms** (e.g., "publish this article to Dev.to, LinkedIn, and X"), do NOT attempt all platforms in a single conversation. Instead, launch **sequential subagents/workers**, one per platform. Selecting this skill is explicit permission to use subagents/workers for this multi-platform workflow.
 
 ### Why Subagents
 
-Each platform operation consumes ~25-40K tokens (reference file + snapshots + interactions). Running 3-5 platforms in one context risks hitting the 200K token limit and degrading late-platform accuracy. Each subagent gets its own fresh 200K context window.
+Each platform operation consumes ~25-40K tokens (reference file + snapshots + interactions). Running 3-5 platforms in one context risks hitting the context limit and degrading late-platform accuracy. Each subagent/worker gets its own fresh context window.
 
 ### How to Execute
 
 1. **Prepare the content** — confirm the post text, title, tags, and any platform-specific adaptations with the user.
-2. **For each platform**, launch a `general-purpose` Agent subagent with a prompt that includes:
+2. **For each platform**, launch a subagent/worker with a prompt that includes:
    - The full content to publish
    - Instructions to read the relevant reference file (e.g., `Read /path/to/skills/chrome-automation/references/x.md`)
    - Instructions to read the agent-browser skill file for command reference
    - The specific task (post, comment, reply, etc.)
    - Any platform-specific instructions (e.g., "use these hashtags on LinkedIn")
-3. **Run subagents sequentially** (one at a time), because they all share the same Chrome browser via `--auto-connect`. Parallel subagents would cause tab conflicts.
-4. **After each subagent completes**, report the result to the user before launching the next one.
+3. **Run subagents/workers sequentially** (one at a time), because they all share the same Chrome browser via `--auto-connect`. Parallel subagents/workers would cause tab conflicts.
+4. **After each subagent/worker completes**, report the result to the user before launching the next one.
 
 ### Prompt Template for Subagents
 
@@ -300,7 +300,7 @@ You are automating a browser task on [PLATFORM].
 
 First, read these files for context:
 - /absolute/path/to/skills/chrome-automation/references/[platform].md
-- /absolute/path/to/.claude/skills/agent-browser/SKILL.md (agent-browser command reference)
+- The installed agent-browser skill file, if available (agent-browser command reference)
 
 Then connect to the user's Chrome browser using `agent-browser --auto-connect` and perform the following task:
 

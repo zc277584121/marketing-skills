@@ -67,7 +67,7 @@ the two approaches.
 Run the script:
 
 ```bash
-python ${CLAUDE_SKILL_ROOT}/scripts/generate_image.py \
+python <skill-root>/scripts/generate_image.py \
   --prompt "your prompt here" \
   --output "/path/to/save/image.png"
 ```

@@ -69,9 +69,7 @@ uvx jupyter-switch example.ipynb
 
 Before running any notebook, you must determine which Python environment to use. The system default `jupyter execute` may not have the required packages installed.
 
-**Step A — Check for saved preference.** Look in the current project's `CLAUDE.local.md` for a `## Jupyter Notebook Execution` section. If it contains a kernel name, use it directly and skip to Step 2.
-
-**Step B — If no saved preference, ask the user.** Detect available environments first:
+**Step A — Detect available environments.**
 
 ```bash
 # Discover conda/mamba environments
@@ -90,7 +88,7 @@ ls -d .venv/ venv/ 2>/dev/null
 test -f pyproject.toml && test -d .venv && echo "uv/pip project venv detected"
 ```
 
-Then present a numbered list of choices. Include all detected environments:
+**Step B — Ask the user which environment to use.** Present a numbered list of choices. Include all detected environments:
 
 1. **System default** — run `jupyter execute` as-is, no `--kernel_name`
 2. **Each detected conda/mamba environment** — show name and path
@@ -100,7 +98,7 @@ Then present a numbered list of choices. Include all detected environments:
 
 > **Note on uv projects:** If the working directory has `pyproject.toml` + `.venv/` (a uv-managed project), the local venv option covers this case. The user can also run `uv run jupyter execute example.ipynb` directly if jupyter is a project dependency.
 
-For every option, also offer a "remember" variant. Example prompt:
+Example prompt:
 
 ```
 Which Python environment should I use to run this notebook?
@@ -110,9 +108,6 @@ Which Python environment should I use to run this notebook?
 3. Jupyter kernel: some-kernel
 4. Local venv (.venv/)
 5. Custom — enter a path or environment name
-
-Tip: add "remember" to save your choice (e.g. "2, remember"),
-so it gets written to CLAUDE.local.md and I won't ask next time.
 ```
 
 **Step C — Apply the chosen environment:**
@@ -122,16 +117,6 @@ so it gets written to CLAUDE.local.md and I won't ask next time.
 | Already a registered Jupyter kernel | Use `jupyter execute --kernel_name=<name>` |
 | Conda env not yet registered as kernel | Register first: `<env-python> -m ipykernel install --user --name <name> --display-name "<label>"`, then use `--kernel_name=<name>` |
 | Custom Python path | Same as above — register as kernel first, then use `--kernel_name` |
-
-**Step D — If the user chose "remember":** append or update a `## Jupyter Notebook Execution` section in the current project's `CLAUDE.local.md`:
-
-```markdown
-## Jupyter Notebook Execution
-
-- **Jupyter kernel**: `<kernel-name>`
-```
-
-This ensures future runs skip the prompt and use the saved kernel directly.
 
 #### 2. Prepare the notebook for execution
 
