@@ -32,6 +32,7 @@ The user can specify how aggressively to remove AI patterns. If they don't speci
    - Chinese articles: `references/chinese.md`
    - English articles: `references/english.md`
 4. **Run the quick-scan scripts** provided in the reference document (if any) to locate symbol-level issues first. This gives you a fast overview of problem spots without reading line by line.
+   - For Chinese articles, scan and handle ASCII double quotes (`"`) and Chinese double quotes (`“”`) with equal priority. Do not only fix ASCII quotes.
 5. **Review the article** against the style guidelines in the reference document. The script results are just a starting point — you still need to read through the full text for patterns that scripts can't detect (e.g., overuse of metaphors, formulaic structure, robotic transitions).
 6. **Apply fixes according to the intensity level**:
    - Moderate: only fix what the scripts flagged + the most glaring patterns.
