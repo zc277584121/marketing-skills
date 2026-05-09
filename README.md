@@ -25,7 +25,7 @@ A collection of reusable skills for Claude Code, Codex CLI, and other coding age
 | [`screenshot-compression`](./skills/screenshot-compression/) | Compress PNG/JPEG screenshots in place using pngquant and jpegoptim, keeping original format for maximum compatibility. |
 | [`mermaid-to-image`](./skills/mermaid-to-image/) | Convert Mermaid code blocks in Markdown files to PNG images using the mermaid.ink API. |
 | [`mermaid-to-gif`](./skills/mermaid-to-gif/) | Convert Mermaid diagrams to animated GIFs with customizable animation styles (progressive reveal, highlight walk, pulse flow). |
-| [`image-generation`](./skills/image-generation/) | Generate illustration images for articles and documentation using Gemini Nano Banana 2 API. Produces clean, minimal-style diagrams and concept illustrations. |
+| [`image-generation`](./skills/image-generation/) | Generate illustration images for articles and documentation with a Codex-first workflow, OpenAI API fallback, and Gemini fallback. |
 
 ### Analytics
 
