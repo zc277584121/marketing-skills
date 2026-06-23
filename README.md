@@ -39,7 +39,7 @@ A collection of reusable skills for Claude Code, Codex CLI, and other coding age
 | Skill | Description |
 |-------|-------------|
 | [`jupyter-notebook-writing`](./skills/jupyter-notebook-writing/) | Write Milvus application-level Jupyter notebook examples using a Markdown-first workflow with jupyter-switch. |
-| [`remove-ai-style`](./skills/remove-ai-style/) | Review and adjust writing style to reduce AI-generated patterns, including quote overuse in Chinese prose. Supports Chinese and English. |
+| [`remove-ai-style`](./skills/remove-ai-style/) | Review and adjust writing style to reduce AI-generated patterns with language-specific references for Chinese and English prose. |
 | [`content-rewrite`](./skills/content-rewrite/) | Adapt content for different platforms (LinkedIn, X, Reddit, English blog, WeChat) with platform-specific tone, format, and length. |
 
 ### Publishing
