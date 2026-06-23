@@ -20,6 +20,7 @@ Verify installation:
 
 ```bash
 agent-browser --version
+npm view agent-browser version
 ```
 
 ---
@@ -68,6 +69,24 @@ This auto-discovers a Chrome instance with remote debugging enabled on the defau
 agent-browser --cdp 9222 open https://example.com
 ```
 
+### Chrome 144+ WebSocket-only endpoint
+
+On newer Chrome builds, the `chrome://inspect/#remote-debugging` UI can show `Server running at: 127.0.0.1:9222` while the old HTTP discovery endpoints return 404:
+
+```bash
+curl -i http://127.0.0.1:9222/json/version
+curl -i http://127.0.0.1:9222/json/list
+```
+
+If `agent-browser --auto-connect tab list` fails with `No running Chrome instance found`, try the latest CLI and connect directly to the browser WebSocket endpoint:
+
+```bash
+npx -y agent-browser@latest connect "ws://127.0.0.1:9222/devtools/browser"
+npx -y agent-browser@latest tab list
+```
+
+If the global CLI is old, keep using `npx -y agent-browser@latest <command>` for that task, or upgrade the global install. `agent-browser@0.29.x` may require Node 24+; if `npx` reports an engine failure, upgrade Node first.
+
 ---
 
 ## Verifying the Connection
@@ -86,6 +105,7 @@ agent-browser --auto-connect tab
 - Chrome's remote debugging is not enabled, or is using a different port
 - Ensure Chrome is running with remote debugging enabled (see above)
 - Check that no firewall is blocking port 9222
+- If port 9222 is open but `/json/version` returns 404, use the Chrome 144+ WebSocket-only endpoint flow above.
 
 ### `snapshot -i` returns empty
 

@@ -52,6 +52,24 @@ agent-browser --auto-connect <command>
 
 This auto-discovers Chrome with remote debugging enabled. If connection fails, guide the user through enabling remote debugging (see `references/agent-browser-setup.md`).
 
+### Chrome 144+ WebSocket-Only Fallback
+
+Chrome 144+ can expose remote debugging from `chrome://inspect/#remote-debugging` as a WebSocket-only endpoint. In that state the page shows `Server running at: 127.0.0.1:9222`, but the traditional discovery URLs return 404:
+
+```bash
+curl http://127.0.0.1:9222/json/version
+curl http://127.0.0.1:9222/json/list
+```
+
+Older `agent-browser` versions such as `0.27.x` may fail with `No running Chrome instance found` even though Chrome is ready. First try the latest CLI without changing the global install:
+
+```bash
+npx -y agent-browser@latest connect "ws://127.0.0.1:9222/devtools/browser"
+npx -y agent-browser@latest tab list
+```
+
+If this works, use `npx -y agent-browser@latest <command>` for the rest of the browser task. If it fails with an engine warning or install error, upgrade Node to 24+ or install the latest `agent-browser` globally.
+
 ---
 
 ## Common Workflows
