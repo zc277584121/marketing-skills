@@ -34,12 +34,6 @@ A collection of reusable skills for Claude Code, Codex CLI, and other coding age
 |-------|-------------|
 | [`github-traffic`](./skills/github-traffic/) | Fetch, store, and visualize GitHub repository traffic data (views, clones, referrers, stars) with trend charts. Requires repo push access. |
 
-### Engineering Workflows
-
-| Skill | Description |
-|-------|-------------|
-| [`my-milvus-integration`](./skills/my-milvus-integration/) | Integrate Milvus into third-party Python projects and prepare upstream PRs. |
-
 ### Content Creation
 
 | Skill | Description |
