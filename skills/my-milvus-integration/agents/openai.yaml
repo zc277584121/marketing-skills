@@ -1,0 +1,4 @@
+interface:
+  display_name: "Milvus Integration"
+  short_description: "Upstream Milvus provider integrations"
+  default_prompt: "Use $my-milvus-integration to evaluate this Python project and prepare a Milvus or Zilliz integration PR."
