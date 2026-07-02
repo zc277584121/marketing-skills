@@ -370,7 +370,7 @@ When automating tasks on specific platforms, consult the relevant reference docu
 | Hacker News | [`references/hackernews.md`](./references/hackernews.md) | Minimal plain HTML; all form fields are unlabeled; `link "reply"` navigates to separate page; `networkidle` works instantly; rate limiting on posts/comments |
 | Browser recording | [`references/browser-recording.md`](./references/browser-recording.md) | Agent Browser viewport recording, version preflight, dedicated headed profile, timeline wrapper, click cue, and finalization |
 | GitHub token recording | [`references/browser-playbooks/github-fine-grained-token.md`](./references/browser-playbooks/github-fine-grained-token.md) | Fine-grained token demo flow; select owner and repo, add read-only Contents permission, stop before `Generate token` |
-| BigQuery demo data recording | [`references/browser-playbooks/bigquery-demo-data.md`](./references/browser-playbooks/bigquery-demo-data.md) | BigQuery demo data view; use Query results to put natural-language columns such as `notes` in the first viewport |
+| BigQuery Console recording | [`references/browser-playbooks/bigquery-console.md`](./references/browser-playbooks/bigquery-console.md) | BigQuery Console UI map, Explorer/Query editor/Results/Schema/Preview recording pitfalls, safety boundaries, and sandbox DML limits |
 
 ---
 
