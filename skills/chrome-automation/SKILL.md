@@ -15,7 +15,7 @@ Automate browser tasks in the user's real Chrome session via the [agent-browser]
 
 This skill operates on a **single Chrome process** — the user's real browser. There is no session management, no separate profiles, no launching a fresh Playwright browser.
 
-Exception: browser viewport recording is a separate mode. For account, credential, cloud-console, or demo recordings, use Agent Browser's `record` command with a dedicated headed profile instead of the user's everyday Chrome. Read `references/browser-recording.md` before starting those tasks.
+Exception: browser viewport recording is a separate mode. For account, credential, cloud-console, or demo recordings, use Agent Browser's `record` command with a dedicated headed profile instead of the user's everyday Chrome.
 
 ### Always Start by Listing Tabs
 
@@ -118,13 +118,14 @@ The user may provide a recording exported from Chrome DevTools Recorder (JSON, P
 
 For browser-only demos where the final video should include page content but not the Chrome address bar, tab strip, automation infobar, or desktop, use Agent Browser viewport recording:
 
-- Read `references/browser-recording.md`.
-- Run the version preflight before formal recording.
+- Run the version preflight before formal recording:
+  ```bash
+  python3 <skill-root>/scripts/check_browser_recording_versions.py
+  ```
 - Use `--headed --profile <dedicated-profile>` with explicit `--namespace` and `--session`.
-- Use Agent Browser native `click` / `fill` / `press` for business actions.
-- Use `scripts/browser_click_cue.js` only for visual click cues, not for triggering real clicks.
-- Formal recordings must go through a wrapper that generates `timeline.jsonl`, `snaps/`, full-duration storyboards, and `finalize-manifest.json`; a lone `.webm` is not a complete recording artifact.
-- Put page-specific playbooks under `references/browser-playbooks/`; for GitHub fine-grained token demos, read `references/browser-playbooks/github-fine-grained-token.md`.
+- Do not use the user's everyday Chrome profile for formal account, credential, or cloud-console recordings.
+- Do not use headless mode for account, credential, or cloud-console recordings; reserve headless for public/local verification only.
+- Keep site-specific playbooks, demo scripts, post-processing wrappers, and timeline conventions in project-specific or private skills.
 
 Do not use this mode for Finder, system download dialogs, desktop apps, or browser chrome itself; use a Mac screen-recording skill for those.
 
@@ -368,9 +369,6 @@ When automating tasks on specific platforms, consult the relevant reference docu
 | LinkedIn | [`references/linkedin.md`](./references/linkedin.md) | Ember.js SPA; Enter submits comments (use Shift+Enter for newlines); comment box and compose box share the same label; avoid `networkidle`; messaging overlay may block content |
 | Dev.to | [`references/devto.md`](./references/devto.md) | Fast server-rendered HTML (Forem/Rails); standard `<textarea>` for comments/posts (Markdown); 5 reaction types; Algolia-powered search; `networkidle` works normally |
 | Hacker News | [`references/hackernews.md`](./references/hackernews.md) | Minimal plain HTML; all form fields are unlabeled; `link "reply"` navigates to separate page; `networkidle` works instantly; rate limiting on posts/comments |
-| Browser recording | [`references/browser-recording.md`](./references/browser-recording.md) | Agent Browser viewport recording, version preflight, dedicated headed profile, timeline wrapper, click cue, and finalization |
-| GitHub token recording | [`references/browser-playbooks/github-fine-grained-token.md`](./references/browser-playbooks/github-fine-grained-token.md) | Fine-grained token demo flow; select owner and repo, add read-only Contents permission, stop before `Generate token` |
-| BigQuery Console recording | [`references/browser-playbooks/bigquery-console.md`](./references/browser-playbooks/bigquery-console.md) | BigQuery Console UI map, Explorer/Query editor/Results/Schema/Preview recording pitfalls, safety boundaries, and sandbox DML limits |
 
 ---
 
