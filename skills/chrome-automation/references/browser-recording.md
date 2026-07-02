@@ -180,7 +180,7 @@ GCP Console 等页面可能启用 Trusted Types，click cue 脚本不能用 `inn
 录制前先写一句“这个镜头要让观众看到什么”。对表格、控制台和数据预览尤其重要：观众要看到的是业务含义，不只是 id、时间、状态这类 metadata。
 
 - 如果关键列在右侧，优先用查询或视图把叙事列放在前面，而不是在正式录制里拖横向滚动条。
-- BigQuery 这类表格 demo，优先录 Query results，把 `notes`、`subject`、`body`、`description` 等自然语言列选到最前面。
+- 控制台/表格类 demo 如果要突出某些业务字段，优先用只读查询或视图调整列顺序，让关键列进入首屏。
 - 每段视频结束前用 snapshot、截图或 storyboard 确认关键文本确实出现在画面里。
 - 如果 storyboard 看不出主要信息，不能交付；重新录或改查询/布局。
 
