@@ -1,94 +1,46 @@
 # English AI-style reduction guide
 
-Check the article for obvious AI-writing patterns, then make the smallest rewrite that removes the tell without flattening the author's voice. If a passage already sounds natural, leave it alone.
+Remove template rhythm, performative polish, and empty fluency without flattening the author's voice. If a passage already sounds natural and specific, leave it alone.
 
-## Quick-scan scripts
+## Deterministic analyzer coverage
 
-Run these before reading line by line. The results are only jump points; still read the full text for rhythm, structure, and factual issues the scripts cannot catch.
+Use `scripts/analyze_ai_style.py` rather than copying regex commands from this reference. The analyzer reports locations, rules, severity, and local context for:
 
-Set the file path first:
+- binary contrast patterns such as “not just X, but Y”
+- common AI openers and meta transitions
+- generic prestige and importance words
+- inflated verbs and copula avoidance
+- canned conclusions
+- assistant residue
+- placeholders and copy-paste artifacts
+- repeated dashes and mixed curly punctuation
+- rhetorical-question headings
+- inline-header list items and neat triplets
+- unusually uniform paragraph lengths, repeated openers, and high list density
 
-```bash
-file_path="<file_path>"
-```
-
-### Scan em dashes, en dashes, and thematic breaks
-
-```bash
-rg -n '[—–]|--|---|\*\*\*|___' "$file_path" || echo "No suspicious dashes or breaks found."
-```
-
-### Scan curly quotes and curly apostrophes
-
-```bash
-rg -n '[“”‘’]' "$file_path" || echo "No curly quotes or apostrophes found."
-```
-
-### Scan binary contrast patterns
-
-```bash
-rg -n -i "\\b(not only|not just|not merely|isn't just|doesn't just|more than just|rather than|instead of|not .{0,80} but|not .{0,80} also)\\b" "$file_path" || echo "No binary contrast patterns found."
-```
-
-### Scan AI-style openers and meta transitions
-
-```bash
-rg -n -i "\\b(in today's|ever-evolving|rapidly evolving|in the realm of|in the world of|delve into|dive into|unlock|harness|leverage|it is important to note|it is worth noting|this article (explores|examines|will)|this guide (explores|examines|will)|below is|here is|let's explore|let us explore)\\b" "$file_path" || echo "No obvious AI-style openers found."
-```
-
-### Scan generic prestige and filler words
-
-```bash
-rg -n -i "\\b(significant|crucial|pivotal|vital|robust|seamless|transformative|game-changing|cutting-edge|innovative|comprehensive|dynamic|nuanced|thoughtful|tapestry|landscape|journey|testament|underscores|highlights|plays a key role|plays a crucial role)\\b" "$file_path" || echo "No generic prestige words found."
-```
-
-### Scan copula-avoidance and marketing verbs
-
-```bash
-rg -n -i "\\b(serves as|stands as|acts as|represents a|marks a|boasts|features|offers a|holds the distinction|is designed to|is aimed at|refers to)\\b" "$file_path" || echo "No copula-avoidance patterns found."
-```
-
-### Scan canned closers and assistant residue
-
-```bash
-rg -n -i "\\b(in conclusion|to sum up|ultimately|moving forward|the future of|i hope this helps|let me know|would you like|as an ai|knowledge cutoff|based on available information|available sources|provided sources)\\b" "$file_path" || echo "No canned closers or assistant residue found."
-```
-
-### Scan over-structured lists and inline-bold headers
-
-```bash
-rg -n "^\\s*([0-9]+\\.|[-*])\\s+(\\*\\*[^*]+:\\*\\*|[A-Z][A-Za-z /-]{2,40}:)" "$file_path" || echo "No inline-header list patterns found."
-```
-
-### Scan placeholders and copy-paste residue
-
-```bash
-rg -n -i '\[(your name|insert|describe|link|source|todo|placeholder)[^\]]*\]|(INSERT_|PASTE_|TODO|TBD|202[0-9]-XX-XX)|```' "$file_path" || echo "No placeholders or fenced-code residue found."
-```
-
-> These scripts intentionally over-flag. Do not rewrite code blocks, quoted source text, citations, URLs, Markdown links, or brand names unless the surrounding prose clearly needs it.
-
----
+Findings are review candidates, not automatic errors. Quotes, product language, technical terms, and genre conventions may justify a hit.
 
 ## 1. Cut throat-clearing
 
-Remove sentence openers that announce the writing instead of saying the thing.
+Remove openers that announce the writing instead of saying the thing.
 
 > Bad: This article explores how teams can leverage vector databases in today's rapidly evolving AI landscape.
 >
 > Better: Teams use vector databases to keep retrieval fast as their AI apps grow.
 
-Watch for: "It is important to note", "It is worth mentioning", "This guide will explore", "Below is", "Let's dive into", "In today's world".
+Watch for “It is important to note,” “This guide will explore,” “Below is,” and “Let's dive into.”
 
 ## 2. Use normal punctuation
 
-English can use em dashes naturally, but repeated em dashes are now a strong AI-writing tell. If a draft uses them more than once or twice, replace most with a period, comma, colon, parentheses, or a simpler sentence break. Avoid decorative horizontal rules before every section.
+English can use em dashes naturally, but repeated em dashes have become a strong AI-writing tell. Replace decorative or habitual dashes with periods, commas, colons, parentheses, or simpler sentences.
 
-Curly quotes and apostrophes are not wrong in edited prose, but mixed straight and curly punctuation often means pasted model output. Normalize punctuation only when it fits the publication style.
+Curly punctuation is not inherently wrong. Check for inconsistent mixing rather than normalizing every mark blindly.
 
-## 3. Avoid binary contrast
+Do not alter code, URLs, Markdown targets, identifiers, or quoted source material merely to normalize punctuation.
 
-AI prose often pretends to correct a misconception: "not just X, but Y", "not merely X", "rather than Y", "more than just". Usually the sentence can state the positive claim directly.
+## 3. Avoid synthetic binary contrast
+
+AI prose often invents a misconception so it can correct it: “not just X,” “not merely X,” “more than just X,” or “rather than Y.” State the positive claim directly when the contrast adds no real information.
 
 > Bad: Milvus is not just a vector database; it is a foundation for intelligent applications.
 >
@@ -96,58 +48,72 @@ AI prose often pretends to correct a misconception: "not just X, but Y", "not me
 
 ## 4. Prefer plain verbs
 
-Do not avoid "is", "are", or "has" just to sound polished. Replace inflated verbs with ordinary ones when they add no meaning.
+Do not avoid “is,” “are,” or “has” just to sound polished.
 
-Common swaps:
-- "serves as" -> "is"
-- "stands as" -> "is"
-- "boasts" -> "has"
-- "features" -> "has" or "includes"
-- "plays a pivotal role in" -> the actual verb
-- "underscores/highlights the importance of" -> the specific result
+Common fixes:
 
-## 5. Replace generic importance with facts
+- “serves as” → “is”
+- “stands as” → “is”
+- “boasts” → “has”
+- “features” → “has” or “includes”
+- “plays a pivotal role in” → the actual verb
+- “underscores the importance of” → the specific result
 
-Words like "significant", "crucial", "pivotal", "robust", "seamless", "transformative", "comprehensive", and "innovative" are often filler. Keep them only when the text proves them. Otherwise, replace the claim with a concrete detail.
+## 5. Replace generic importance with evidence
+
+“Significant,” “crucial,” “pivotal,” “robust,” “seamless,” “transformative,” and “innovative” often announce value without proving it.
 
 > Bad: This robust solution plays a crucial role in modern data workflows.
 >
 > Better: The pipeline retries failed imports and records every skipped row.
 
+Keep an adjective when the sentence supplies the evidence that makes it accurate.
+
 ## 6. Break listicle rhythm
 
-AI drafts often move in neat threes: three adjectives, three clauses, three bullet sections, three closing takeaways. That rhythm becomes too smooth. Collapse weak triplets into one specific point, vary sentence length, and remove bullets that do not help scanning.
+AI drafts often move in neat threes: three adjectives, three clauses, three sections, three closing takeaways. Collapse weak triplets, vary sentence length when the existing cadence feels mechanical, and remove bullets that do not help scanning.
 
-Do not force "human messiness" by adding slang or errors. The goal is less metronomic, not sloppy.
+Do not simulate humanity with slang, deliberate mistakes, or random fragments.
 
 ## 7. Put real actors in the sentence
 
-Avoid passive voice, false agency, and vague authorities when the actor matters.
+Avoid false agency and vague authorities when the actor matters.
 
 > Bad: A new benchmark was introduced to demonstrate that latency is reduced.
 >
 > Better: The team added a benchmark and cut p95 latency by 18%.
 
-Watch for vague sources: "experts say", "researchers agree", "it is widely recognized", "available sources suggest". If the source is real, name it. If it is not verified, flag the claim instead of polishing it.
+If “experts say” or “researchers agree” has no verifiable source, flag the claim instead of polishing it.
 
 ## 8. Use quieter headings and structure
 
-Prefer sentence-case headings unless the publication style requires title case. Avoid rhetorical-question headings and generic sections such as "Challenges and Future Outlook", "Key Takeaways", or "Conclusion" when the section does not add new information.
+Prefer headings that name the subject. Avoid rhetorical questions and generic sections such as “Challenges and Future Outlook,” “Key Takeaways,” or “Conclusion” when they add no information.
 
-Inline-bold list headers are useful in docs, but in essays and articles they often look machine-generated:
-
-> Bad: - **Scalability:** The system can handle growing workloads.
->
-> Better: The system can handle growing workloads without changing the ingestion code.
+Inline-bold list headers can be correct in documentation. In essays, they often create a generated listicle rhythm. Preserve structures that fit the genre.
 
 ## 9. Remove assistant residue and placeholders
 
-Delete knowledge-cutoff disclaimers, "based on the provided sources", "I hope this helps", "Would you like me to", and template leftovers such as `[insert source]`, `PASTE_URL_HERE`, or `2026-XX-XX`.
+Delete knowledge-cutoff disclaimers, “based on the provided sources,” “I hope this helps,” “Would you like me to,” and unresolved template text.
 
-For citations, do not invent or smooth suspicious references. If a link, DOI, date, or quoted claim looks fabricated or incomplete, flag it for verification.
+Do not smooth over suspicious citations. Flag an incomplete link, DOI, date, or quoted claim for verification.
 
 ## 10. Preserve genre and voice
 
-Technical docs, release notes, product pages, essays, and social posts need different levels of structure. Lists, bold labels, and title-case headings may be correct in docs or product UI copy. Keep deliberate stylistic choices when they fit the venue.
+Technical docs, release notes, product pages, essays, and social posts need different structures. Lists, bold labels, and title-case headings may be intentional.
 
-Do not over-humanize by adding contractions, jokes, slang, first-person anecdotes, or choppy fragments unless the surrounding voice already supports them. The safest rewrite is usually plainer, more specific, and less performative.
+Do not over-humanize with contractions, jokes, anecdotes, or choppy prose unless the surrounding voice supports them. The safest rewrite is usually plainer, more specific, and less performative.
+
+## 11. Full-read semantic checks
+
+The analyzer cannot enumerate every semantic pattern. Read the whole article for:
+
+- repeated arguments expressed with different vocabulary
+- identical section logic repeated across the article
+- unsupported escalation from a local fact to an industry-wide claim
+- artificial emotional peaks and tidy reversals
+- paragraph rhythm that remains mechanical despite varied words
+- vague claims that sound polished but carry little information
+- a rewrite that erases the author's actual position
+- genre mismatch
+
+A lower finding count is useful evidence, but the final article must still read coherently from start to finish.

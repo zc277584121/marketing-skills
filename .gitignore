@@ -11,6 +11,9 @@ skills-lock.json
 # Temporary files
 temp.md
 tmp/
+.DS_Store
+__pycache__/
+*.py[cod]
 
 # Nurturing operation logs and scripts (local only)
 operator_history/
