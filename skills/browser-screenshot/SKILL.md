@@ -1,13 +1,50 @@
 ---
 name: browser-screenshot
-description: Take focused, region-specific screenshots from web pages. Navigates to the right page based on user context (URL, search query, social media post), locates the target region via DOM selectors, and crops to a clean, focused screenshot.
+description: Take focused, region-specific screenshots from web pages using a dedicated headed Chrome profile with persistent login state. Navigates to the right page based on user context (URL, search query, social media post), locates the target region via DOM selectors, and crops to a clean, focused screenshot without attaching to the user's daily browser.
 ---
 
 # Skill: Browser Screenshot
 
 Take focused screenshots of specific regions on web pages — a Reddit post, a tweet, an article section, a chart, etc. — not just a full-page dump.
 
-> **Prerequisite**: agent-browser must be installed and Chrome must have remote debugging enabled. See `references/agent-browser-setup.md` if unsure.
+> **Prerequisite**: `agent-browser` must be installed. This skill uses its own headed Chrome with a dedicated persistent profile; the user's daily Chrome does not need remote debugging.
+
+## Dedicated Browser Profile
+
+Use the same dedicated persistent profile convention as `my-chrome-automation`:
+
+```bash
+PROFILE_DIR="${AGENT_BROWSER_PROFILE:-$HOME/.agent-browser-recorder-chrome}"
+NAMESPACE="${NAMESPACE:-browser-screenshot}"
+SESSION="${SESSION:-focused-capture}"
+
+ab() {
+  agent-browser --namespace "$NAMESPACE" --session "$SESSION" --headed --profile "$PROFILE_DIR" "$@"
+}
+```
+
+Run every browser command through `ab`. Do not use `--auto-connect`, generic CDP discovery, or the user's daily Chrome profile. The dedicated profile preserves cookies and login state across tasks while allowing the user's normal Chrome to remain open and untouched.
+
+Choose a descriptive `SESSION` for the task when practical. Do not run multiple tasks against the same profile concurrently; reuse it sequentially to avoid profile-lock conflicts.
+
+If the target site requires login, open it with `ab`, pause for the user to complete login or verification in the dedicated headed window, and then continue with the same profile and session.
+
+### If the Dedicated Profile Is Already Running
+
+A second Chrome launch with the same profile may exit before creating a DevTools endpoint. Never fall back to whichever Chrome happens to be open. Either reuse a known Agent Browser session for this profile, or explicitly attach only to a Chrome process whose command line contains the exact `--user-data-dir=$PROFILE_DIR` value.
+
+On macOS, identify that dedicated process and its local CDP port like this:
+
+```bash
+PROFILE_PID="$(ps -axo pid=,command= | awk -v profile="--user-data-dir=$PROFILE_DIR" 'index($0, profile) && index($0, "--remote-debugging-port=") && $0 !~ /Helper/ {print $1; exit}')"
+CDP_PORT="$(lsof -nP -a -p "$PROFILE_PID" -iTCP -sTCP:LISTEN | awk 'NR > 1 && $9 ~ /^127\.0\.0\.1:[0-9]+$/ {split($9, parts, ":"); print parts[2]; exit}')"
+
+ab() {
+  agent-browser --namespace "$NAMESPACE" --session "$SESSION" --cdp "$CDP_PORT" "$@"
+}
+```
+
+Require non-empty, unambiguous `PROFILE_PID` and `CDP_PORT` values before attaching. If they cannot be verified, ask the user to close the dedicated automation window and retry. Do not close a browser that this task only attached to.
 
 ---
 
@@ -43,7 +80,7 @@ This saves significant time — most candidate pages won't be worth screenshotti
 
 Skip the WebSearch/WebFetch phase and go directly to Chrome browsing when:
 
-- **The target platform requires login** — Reddit, LinkedIn, X/Twitter, and other social platforms often gate content behind login walls. If the user's Chrome session is already logged in, use the browser directly.
+- **The target platform requires login** — Reddit, LinkedIn, X/Twitter, and other social platforms often gate content behind login walls. Use the dedicated profile directly so its saved login state can be reused.
 - **The user specifies a platform with a clear search need** — e.g., "find a Reddit post about X" or "screenshot a tweet about Y". Go straight to the platform's search in Chrome.
 - **WebFetch returns blocked/incomplete content** — some sites aggressively block non-browser requests. If you get a 403, a CAPTCHA page, or stripped content, switch to Chrome.
 
@@ -107,17 +144,17 @@ The screenshot should make the reader think "ah, that's what this model/product 
 ### Always Start by Listing Tabs
 
 ```bash
-agent-browser --auto-connect tab list
+ab tab list
 ```
 
-Check if the page is already open. Reuse existing tabs — they have login sessions and correct state.
+Check if the page is already open in the dedicated session. Reuse its existing tabs when they have the correct login and page state.
 
 ### Navigation by Input Type
 
 | User Provides | Strategy |
 |---------------|----------|
-| Direct URL | `agent-browser --auto-connect open <url>` |
-| Search query | `open https://www.google.com/search?q=<encoded-query>` → find and click the best result |
+| Direct URL | `ab open <url>` |
+| Search query | `ab open https://www.google.com/search?q=<encoded-query>` → find and click the best result |
 | Platform + topic | Construct platform search URL (see below) → locate target content |
 | Vague description | Google search → evaluate results → navigate to best match |
 
@@ -137,7 +174,7 @@ Check if the page is already open. Reuse existing tabs — they have login sessi
 After navigation, wait for content to settle:
 
 ```bash
-agent-browser --auto-connect wait --load networkidle
+ab wait --load networkidle
 ```
 
 > **Note**: Some sites (Reddit, X, LinkedIn) never reach `networkidle`. If `open` already shows the page title in its output, skip the wait. Use `wait 2000` as a safe alternative.
@@ -152,12 +189,12 @@ This is the critical step. The goal is to find a **CSS selector** that precisely
 
 1. **Take an annotated screenshot** to understand the page layout:
    ```bash
-   agent-browser --auto-connect screenshot --annotate
+   ab screenshot --annotate
    ```
 
 2. **Take a snapshot** to see the page's accessibility tree:
    ```bash
-   agent-browser --auto-connect snapshot -i
+   ab snapshot -i
    ```
 
 3. **Identify the target container element**. Look for:
@@ -167,7 +204,7 @@ This is the critical step. The goal is to find a **CSS selector** that precisely
 
 4. **Verify with `get box`** to confirm the element has a reasonable bounding box:
    ```bash
-   agent-browser --auto-connect get box "<selector>"
+   ab get box "<selector>"
    ```
    This returns `{ x, y, width, height }`. Sanity-check:
    - Width should be > 100px and < viewport width
@@ -176,7 +213,7 @@ This is the critical step. The goal is to find a **CSS selector** that precisely
 
 5. **If the selector is hard to find**, use `eval` to explore the DOM:
    ```bash
-   agent-browser --auto-connect eval "document.querySelector('article')?.getBoundingClientRect()"
+   ab eval "document.querySelector('article')?.getBoundingClientRect()"
    ```
 
 ### Platform Selectors
@@ -201,11 +238,11 @@ If the selector matches multiple elements (e.g., multiple tweets on a timeline),
 
 ```bash
 # Count matches
-agent-browser --auto-connect get count "article[data-testid='tweet']"
+ab get count "article[data-testid='tweet']"
 
 # Use nth-child or :first-of-type, or a more specific selector
 # Or use eval to find the right one by text content:
-agent-browser --auto-connect eval --stdin <<'EOF'
+ab eval --stdin <<'EOF'
 const posts = document.querySelectorAll('article[data-testid="tweet"]');
 for (let i = 0; i < posts.length; i++) {
   const text = posts[i].textContent.substring(0, 80);
@@ -226,11 +263,11 @@ Best when the target element fits within the viewport.
 
 ```bash
 # Scroll the target into view
-agent-browser --auto-connect scrollintoview "<selector>"
-agent-browser --auto-connect wait 500
+ab scrollintoview "<selector>"
+ab wait 500
 
 # Take viewport screenshot
-agent-browser --auto-connect screenshot /tmp/browser-screenshot-raw.png
+ab screenshot /tmp/browser-screenshot-raw.png
 ```
 
 Then crop using the bounding box (see [Cropping](#cropping)).
@@ -241,10 +278,10 @@ Best when the target might be larger than the viewport or when precise cropping 
 
 ```bash
 # Take full-page screenshot
-agent-browser --auto-connect screenshot --full /tmp/browser-screenshot-full.png
+ab screenshot --full /tmp/browser-screenshot-full.png
 
 # Get the target element's bounding box
-agent-browser --auto-connect get box "<selector>"
+ab get box "<selector>"
 # Output: { x: 200, y: 450, width: 680, height: 520 }
 ```
 
@@ -317,7 +354,7 @@ When DOM-based location is uncertain — the selector might be wrong, multiple c
 
 1. **Inject a highlight border** on the candidate element:
    ```bash
-   agent-browser --auto-connect eval --stdin <<'EOF'
+   ab eval --stdin <<'EOF'
    (function() {
      const el = document.querySelector('<selector>');
      if (!el) { console.log('NOT_FOUND'); return; }
@@ -330,13 +367,13 @@ When DOM-based location is uncertain — the selector might be wrong, multiple c
 
 2. **Take a screenshot** and visually inspect:
    ```bash
-   agent-browser --auto-connect screenshot /tmp/highlight-check.png
+   ab screenshot /tmp/highlight-check.png
    ```
    Read the screenshot to check if the red border surrounds the correct content.
 
 3. **If correct**, remove the highlight and proceed with cropping:
    ```bash
-   agent-browser --auto-connect eval "document.querySelector('<selector>').style.outline = ''; document.querySelector('<selector>').style.outlineOffset = '';"
+   ab eval "document.querySelector('<selector>').style.outline = ''; document.querySelector('<selector>').style.outlineOffset = '';"
    ```
 
 4. **If wrong**, try the next candidate or refine the selector, re-highlight, and re-check.
@@ -356,7 +393,7 @@ Before taking the final screenshot, clean up the page for a better result:
 
 ```bash
 # Dismiss cookie banners, popups, overlays
-agent-browser --auto-connect eval --stdin <<'EOF'
+ab eval --stdin <<'EOF'
 (function() {
   // Common cookie/popup selectors
   const selectors = [
@@ -402,69 +439,16 @@ For consistent, high-quality screenshots, set the viewport before capturing:
 
 ```bash
 # Standard desktop viewport
-agent-browser --auto-connect set viewport 1280 800
+ab set viewport 1280 800
 
 # Wider for dashboard/data-heavy pages
-agent-browser --auto-connect set viewport 1440 900
+ab set viewport 1440 900
 
 # Narrower for mobile-like content (social media posts)
-agent-browser --auto-connect set viewport 800 600
+ab set viewport 800 600
 ```
 
 Choose a viewport width that makes the target content render cleanly — not too cramped, not too stretched.
-
----
-
-## Complete Example: Screenshot a Reddit Post
-
-User: "Screenshot the top post on r/programming"
-
-```bash
-# 1. List existing tabs
-agent-browser --auto-connect tab list
-
-# 2. Navigate to subreddit
-agent-browser --auto-connect open https://www.reddit.com/r/programming/
-agent-browser --auto-connect wait 2000
-
-# 3. Find the first post container
-agent-browser --auto-connect eval "document.querySelector('shreddit-post')?.getBoundingClientRect()"
-
-# 4. Scroll it into view
-agent-browser --auto-connect scrollintoview "shreddit-post"
-agent-browser --auto-connect wait 500
-
-# 5. Get bounding box
-agent-browser --auto-connect get box "shreddit-post"
-# → { x: 312, y: 80, width: 656, height: 420 }
-
-# 6. Take full-page screenshot
-agent-browser --auto-connect screenshot --full /tmp/reddit-raw.png
-
-# 7. Crop with padding
-convert /tmp/reddit-raw.png \
-  -crop 688x452+296+64 +repage \
-  reddit-post-screenshot.png
-
-# 8. Verify by reading the output image
-```
-
----
-
-## Key Commands Quick Reference
-
-| Command | Purpose |
-|---------|---------|
-| `tab list` | List open tabs |
-| `open <url>` | Navigate to URL |
-| `wait 2000` | Wait for content to settle |
-| `snapshot -i` | See interactive elements |
-| `screenshot --annotate` | Visual overview with labels |
-| `screenshot --full <path>` | Full-page screenshot |
-| `get box "<selector>"` | Get element bounding box |
-| `scrollintoview "<sel>"` | Scroll element into view |
-| `eval <js>` | Run JavaScript in page |
-| `set viewport <w> <h>` | Set viewport dimensions |
 
 ---
 
@@ -482,28 +466,28 @@ convert /tmp/reddit-raw.png \
 - `get box` and `snapshot -i` cannot see inside iframes.
 - Use `eval` to access iframe content:
   ```bash
-  agent-browser --auto-connect eval "document.querySelector('iframe').contentDocument.querySelector('<sel>').getBoundingClientRect()"
+  ab eval "document.querySelector('iframe').contentDocument.querySelector('<sel>').getBoundingClientRect()"
   ```
   Note: Only works for same-origin iframes.
 
 ### `open` succeeded but page content is wrong
 - The browser may have switched to a different tab (e.g., a popup or redirect opened a new tab). Always verify after navigation:
   ```bash
-  agent-browser --auto-connect eval "document.location.href"
+  ab eval "document.location.href"
   ```
 - If the URL is wrong, use `tab list` to find the correct tab and `tab goto <N>` to switch.
 
 ### Screenshot command times out on fonts
 - Some pages (e.g., Google developer docs) hang on `document.fonts.ready`. Force-resolve it first:
   ```bash
-  agent-browser --auto-connect eval "document.fonts.ready.then(() => 'ok')"
+  ab eval "document.fonts.ready.then(() => 'ok')"
   ```
   Then retry the screenshot.
 
 ### Page has lazy-loaded content
 - Scroll down to trigger loading before taking the screenshot:
   ```bash
-  agent-browser --auto-connect scroll down 1000
-  agent-browser --auto-connect wait 1500
-  agent-browser --auto-connect scroll up 1000
+  ab scroll down 1000
+  ab wait 1500
+  ab scroll up 1000
   ```
