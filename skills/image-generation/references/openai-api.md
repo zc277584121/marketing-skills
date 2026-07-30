@@ -34,7 +34,7 @@ Useful defaults:
 
 | Request | Script args | Typical OpenAI size |
 |---------|-------------|---------------------|
-| Article illustration | `--aspect-ratio 3:2 --image-size 1K` | `1536x1024` |
+| Article illustration | `--aspect-ratio 16:9 --image-size 1K` | `1824x1024` |
 | Square image | `--aspect-ratio 1:1 --image-size 1K` | `1024x1024` |
 | Social banner | `--aspect-ratio 16:9 --image-size 2K` | near `3840x2160` |
 | Portrait image | `--aspect-ratio 2:3 --image-size 1K` | `1024x1536` |
@@ -56,7 +56,7 @@ Use `--openai-quality high` for final article visuals. Use `medium` or `low` onl
 python <skill-root>/scripts/generate_image.py \
   --provider openai \
   --openai-quality high \
-  --aspect-ratio 3:2 \
+  --aspect-ratio 16:9 \
   --image-size 1K \
   --prompt "..." \
   --output images/example.png

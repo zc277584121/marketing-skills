@@ -116,8 +116,8 @@ the two approaches.
 |-----------|---------|-------|
 | Provider | `auto` in script; Codex built-in when available | Codex built-in first, then OpenAI API, then Gemini |
 | OpenAI model | `gpt-image-2` | Used by script fallback |
-| Gemini model | `gemini-3.1-flash-image-preview` | Used by script fallback |
-| Aspect ratio | `3:2` | Landscape, ideal for article illustrations |
+| Gemini model | `gemini-3.1-flash-image` | Used by script fallback |
+| Aspect ratio | `16:9` | Landscape, ideal for article illustrations |
 | Image size | `1K` | Good balance of quality and cost |
 | Style | Minimal, clean, soft tones | Auto-prepended by script |
 | Language | English | Prompt and in-image text |
@@ -128,7 +128,7 @@ the two approaches.
 --provider          auto, openai, gemini
 --model             Provider model ID for the selected provider
 --openai-model      OpenAI model ID, default gpt-image-2
---gemini-model      Gemini model ID, default gemini-3.1-flash-image-preview
+--gemini-model      Gemini model ID, default gemini-3.1-flash-image
 --aspect-ratio      1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 9:16, 16:9, 21:9, etc.
 --image-size        512, 1K, 2K, 4K
 --openai-quality    low, medium, high, auto
@@ -141,7 +141,6 @@ the two approaches.
 | Scenario | Change |
 |----------|--------|
 | Higher quality final asset | `--image-size 2K` or `--openai-quality high` |
-| Social media banner | `--aspect-ratio 16:9` |
 | Portrait/vertical image | `--aspect-ratio 3:4` or `--aspect-ratio 9:16` |
 | Square image | `--aspect-ratio 1:1` |
 | User has their own style | `--style-prefix "your style"` or `--no-style` |

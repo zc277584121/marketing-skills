@@ -5,7 +5,7 @@ Use this path when OpenAI API generation is unavailable or fails, and `GEMINI_AP
 ## Requirements
 
 - `GEMINI_API_KEY` must be set.
-- The default model is `gemini-3.1-flash-image-preview`.
+- The default model is `gemini-3.1-flash-image`.
 - This path preserves the original Nano Banana workflow.
 
 ## Command
@@ -29,7 +29,7 @@ python <skill-root>/scripts/generate_image.py \
 ## Options
 
 ```text
---gemini-model    gemini-3.1-flash-image-preview, gemini-3-pro-image-preview, gemini-2.5-flash-image
+--gemini-model    gemini-3.1-flash-image, gemini-3.1-flash-image-preview, gemini-3-pro-image-preview, gemini-2.5-flash-image
 --aspect-ratio    1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
 --image-size      512, 1K, 2K, 4K
 --style-prefix    Custom style prefix
