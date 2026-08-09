@@ -14,7 +14,7 @@ Take focused screenshots of specific regions on web pages — a Reddit post, a t
 Use the same dedicated persistent profile convention as `my-chrome-automation`:
 
 ```bash
-PROFILE_DIR="${AGENT_BROWSER_PROFILE:-$HOME/.agent-browser-recorder-chrome}"
+PROFILE_DIR="${AGENT_BROWSER_PROFILE:-$HOME/.agent-browser-chrome}"
 NAMESPACE="${NAMESPACE:-browser-screenshot}"
 SESSION="${SESSION:-focused-capture}"
 

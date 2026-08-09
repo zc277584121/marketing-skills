@@ -1,6 +1,6 @@
 ---
 name: chrome-automation
-description: Automate Chrome browser tasks using agent-browser CLI. Navigate pages, fill forms, click buttons, take screenshots, extract data, replay recorded workflows, and record browser viewport demos; use the user's real Chrome session for normal automation, and use a dedicated headed profile for account, credential, cloud-console, or other browser recording demos.
+description: Automate Chrome browser tasks using agent-browser CLI. Navigate pages, fill forms, click buttons, take screenshots, extract data, and replay Chrome DevTools Recorder exports.
 ---
 
 # Skill: Chrome Automation (agent-browser)
@@ -14,8 +14,6 @@ Automate browser tasks in the user's real Chrome session via the [agent-browser]
 ## Core Principle: Reuse the User's Existing Chrome
 
 This skill operates on a **single Chrome process** — the user's real browser. There is no session management, no separate profiles, no launching a fresh Playwright browser.
-
-Exception: browser viewport recording is a separate mode. For account, credential, cloud-console, or demo recordings, use Agent Browser's `record` command with a dedicated headed profile instead of the user's everyday Chrome.
 
 ### Always Start by Listing Tabs
 
@@ -113,23 +111,6 @@ agent-browser --auto-connect eval "JSON.stringify(document.querySelectorAll('tab
 ### 3. Replay a Chrome DevTools Recording
 
 The user may provide a recording exported from Chrome DevTools Recorder (JSON, Puppeteer JS, or @puppeteer/replay JS format). See [Replaying Recordings](#replaying-recordings) below.
-
-### 4. Record a Browser Viewport Demo
-
-For browser-only demos where the final video should include page content but not the Chrome address bar, tab strip, automation infobar, or desktop, use Agent Browser viewport recording:
-
-- Run the version preflight before formal recording:
-  ```bash
-  python3 <skill-root>/scripts/check_browser_recording_versions.py
-  ```
-- Use `--headed --profile <dedicated-profile>` with explicit `--namespace` and `--session`.
-- Do not use the user's everyday Chrome profile for formal account, credential, or cloud-console recordings.
-- Do not use headless mode for account, credential, or cloud-console recordings; reserve headless for public/local verification only.
-- Keep site-specific playbooks, demo scripts, post-processing wrappers, and timeline conventions in project-specific or private skills.
-
-Do not use this mode for Finder, system download dialogs, desktop apps, or browser chrome itself; use a Mac screen-recording skill for those.
-
----
 
 ## Step-by-Step Interaction Guide
 

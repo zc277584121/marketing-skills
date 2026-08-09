@@ -8,7 +8,7 @@ A collection of reusable skills for Claude Code, Codex CLI, and other coding age
 
 | Skill | Description |
 |-------|-------------|
-| [`chrome-automation`](./skills/chrome-automation/) | Automate Chrome browser tasks using the [agent-browser](https://github.com/vercel-labs/agent-browser) CLI. Navigate pages, fill forms, extract data, replay workflows, and record browser viewport demos with dedicated headed profiles. |
+| [`chrome-automation`](./skills/chrome-automation/) | Automate Chrome browser tasks using the [agent-browser](https://github.com/vercel-labs/agent-browser) CLI. Navigate pages, fill forms, take screenshots, extract data, and replay Chrome DevTools Recorder exports. |
 | [`browser-screenshot`](./skills/browser-screenshot/) | Take focused, region-specific screenshots from web pages using a dedicated headed Chrome profile with persistent login state, then crop to the target region. |
 
 ### Video Processing
