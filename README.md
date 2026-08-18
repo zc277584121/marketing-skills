@@ -25,7 +25,7 @@ A collection of reusable skills for Claude Code, Codex CLI, and other coding age
 | [`screenshot-compression`](./skills/screenshot-compression/) | Compress PNG/JPEG screenshots in place using pngquant and jpegoptim, keeping original format for maximum compatibility. |
 | [`mermaid-to-image`](./skills/mermaid-to-image/) | Convert Mermaid code blocks in Markdown files to PNG images using the mermaid.ink API. |
 | [`mermaid-to-gif`](./skills/mermaid-to-gif/) | Convert Mermaid diagrams to animated GIFs with customizable animation styles (progressive reveal, highlight walk, pulse flow). |
-| [`image-generation`](./skills/image-generation/) | Generate illustration images for articles and documentation with a Codex-first workflow, OpenAI API fallback, and Gemini fallback. |
+| [`image-generation`](./skills/image-generation/) | Generate illustration images for articles and documentation with a Codex-first workflow and OpenAI, Gemini, or Atlas Cloud API fallbacks. |
 | [`milvus-meme-sticker`](./skills/milvus-meme-sticker/) | Create tiny no-text Milvus-style sticker memes for technical articles and community posts. |
 
 ### Analytics
