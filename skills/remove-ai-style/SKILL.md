@@ -1,6 +1,6 @@
 ---
 name: remove-ai-style
-description: Review and rewrite Chinese or English prose to reduce AI-generated patterns. Use for de-AI polishing, natural-language rewrites, robotic or formulaic writing, and publication cleanup. Always run the bundled deterministic Markdown analyzer first, inspect every reported location, then read the full article for semantic patterns the rules cannot enumerate.
+description: Aggressively rewrite Chinese or English prose to remove AI-generated patterns. Use for de-AI polishing, natural-language rewrites, robotic or formulaic writing, and publication cleanup. Always run the bundled deterministic Markdown analyzer first, remove every editable exclamation mark, dash, and formulaic binary contrast, inspect every other reported location, then read the full article for semantic patterns the rules cannot enumerate.
 ---
 
 # Remove AI Style
@@ -10,17 +10,15 @@ Use a two-layer workflow:
 1. Run the deterministic analyzer to locate repeatable lexical, punctuation, structural, and assistant-residue signals.
 2. Read the full article and make contextual judgments that rules cannot cover.
 
-The analyzer provides evidence, not automatic rewrite commands. A hit can be intentional, genre-appropriate, quoted text, or a false positive.
+Apply one strong default. Fix confirmed findings at every severity, rewrite awkward passages, and remove unflagged formulaic rhythm while preserving facts, meaning, required structure, and the author's intended voice. Do not ask the user to choose an intensity and do not offer light, moderate, heavy, or full modes.
 
-## Intensity
+Most analyzer hits still require contextual judgment. Three rule families are hard publication constraints in editable prose:
 
-Default to `heavy` when the user does not specify a level.
+- Remove all exclamation marks.
+- Remove all em dashes, en dashes, and double hyphens used as dashes.
+- Rewrite all formulaic binary contrasts, including “不是……而是……”, “并非……更是……”, “not just X but Y”, and close variants, as direct claims.
 
-| Level | Behavior |
-|---|---|
-| `moderate` | Fix confirmed high/medium findings and the most obvious semantic patterns. Preserve most phrasing and structure. |
-| `heavy` | Fix confirmed findings at every severity, rewrite awkward passages, and address unflagged formulaic rhythm. Default. |
-| `full` | Treat prose as a draft and rewrite broadly while preserving facts, meaning, structure that must survive, and the author's intended voice. |
+The post-edit analyzer counts for `zh-exclamation` or `en-exclamation`, `zh-dash` or `en-dash`, and `zh-binary-contrast` or `en-binary-contrast` must be zero. The only exceptions are protected regions such as code, URLs, Markdown targets, and source text that must remain verbatim. Do not treat brand enthusiasm, casual tone, or a writer's habitual punctuation as reasons to keep these patterns.
 
 ## Required workflow
 
@@ -61,7 +59,9 @@ Do not replace this command with copied `grep` snippets. The bundled script is t
 
 ### 3. Inspect every finding
 
-Classify every reported item as one of:
+Rewrite every editable finding from the hard-constraint rule families. Do not classify these findings as intentional or false positives merely because the usage is grammatically valid.
+
+Classify every other reported item as one of:
 
 - `confirmed`: rewrite it
 - `intentional`: keep it because the genre or voice requires it
@@ -100,7 +100,7 @@ Before editing, record the structures that must survive:
 
 Do not change facts, numbers, URLs, code, image paths, TODO IDs, or citation targets merely to make prose sound more natural.
 
-### 6. Rewrite according to intensity
+### 6. Rewrite aggressively
 
 Make contextual edits rather than phrase substitution:
 
@@ -108,7 +108,7 @@ Make contextual edits rather than phrase substitution:
 - Remove meta-writing, generic importance claims, assistant residue, and decorative transitions.
 - Vary rhythm only where the current rhythm feels artificial; do not add slang, mistakes, or random fragments to imitate a human.
 - Preserve deliberate voice, technical precision, and genre-appropriate structure.
-- Do not force every analyzer count to zero.
+- Drive confirmed findings down as far as the material allows. The hard-constraint rule counts must reach zero outside protected regions.
 
 When invoked as a Subagent on a file, edit the file directly, then return a concise change report. Do not delegate the rewrite to another agent.
 
@@ -116,7 +116,19 @@ When invoked as a Subagent on a file, edit the file directly, then return a conc
 
 After editing, rerun the same command and compare before/after summaries.
 
-Review remaining high/medium findings individually. A remaining hit is acceptable when it is intentional, protected, required for accuracy, or a documented false positive.
+Use the hard-constraint gate for the final rescan:
+
+```bash
+python3 <skill-root>/scripts/analyze_ai_style.py \
+  <article-path> \
+  --language auto \
+  --format json \
+  --fail-on-hard-constraints
+```
+
+Exit status `2` means at least one exclamation mark, dash, or formulaic binary contrast remains in scanned prose. Rewrite it unless inspection confirms that the match belongs to source text that must remain verbatim.
+
+Review every remaining finding individually. A remaining non-hard-constraint hit is acceptable when it is intentional, protected, required for accuracy, or a documented false positive. A remaining hard-constraint hit is acceptable only when it is protected or must remain verbatim.
 
 Finally, read the full revised article once more for continuity and voice. A lower finding count does not prove the rewrite is good.
 
@@ -124,8 +136,9 @@ Finally, read the full revised article once more for continuity and voice. A low
 
 Return:
 
-- language and intensity
+- language
 - before/after finding counts by severity
+- confirmation that the hard-constraint rule counts reached zero, or an exact list of protected verbatim exceptions
 - confirmed rules addressed
 - intentional or protected findings left in place
 - important semantic changes found only by full reading

@@ -13,12 +13,12 @@ Use `scripts/analyze_ai_style.py` rather than copying regex commands from this r
 - canned conclusions
 - assistant residue
 - placeholders and copy-paste artifacts
-- repeated dashes and mixed curly punctuation
+- exclamation marks, dashes, and mixed curly punctuation
 - rhetorical-question headings
 - inline-header list items and neat triplets
 - unusually uniform paragraph lengths, repeated openers, and high list density
 
-Findings are review candidates, not automatic errors. Quotes, product language, technical terms, and genre conventions may justify a hit.
+Most findings require contextual review. Exclamation marks, dashes, and formulaic binary contrasts are hard constraints in editable prose and must all be removed. Only code, URLs, Markdown targets, and source text that must remain verbatim are exempt.
 
 ## 1. Cut throat-clearing
 
@@ -32,15 +32,17 @@ Watch for “It is important to note,” “This guide will explore,” “Below
 
 ## 2. Use normal punctuation
 
-English can use em dashes naturally, but repeated em dashes have become a strong AI-writing tell. Replace decorative or habitual dashes with periods, commas, colons, parentheses, or simpler sentences.
+Remove every exclamation mark. Use a period, comma, or a simpler sentence instead. Enthusiastic brand voice and casual social copy are not reasons to keep one.
+
+Remove every em dash, en dash, and double hyphen used as a dash. Replace it with a period, comma, colon, parentheses, or a simpler sentence.
 
 Curly punctuation is not inherently wrong. Check for inconsistent mixing rather than normalizing every mark blindly.
 
 Do not alter code, URLs, Markdown targets, identifiers, or quoted source material merely to normalize punctuation.
 
-## 3. Avoid synthetic binary contrast
+## 3. Remove synthetic binary contrast
 
-AI prose often invents a misconception so it can correct it: “not just X,” “not merely X,” “more than just X,” or “rather than Y.” State the positive claim directly when the contrast adds no real information.
+AI prose often invents a misconception so it can correct it: “not just X,” “not merely X,” “more than just X,” or “rather than Y.” Rewrite every formulaic binary contrast as a direct claim. When the comparison carries factual information, state both facts plainly without retaining the template.
 
 > Bad: Milvus is not just a vector database; it is a foundation for intelligent applications.
 >
@@ -116,4 +118,4 @@ The analyzer cannot enumerate every semantic pattern. Read the whole article for
 - a rewrite that erases the author's actual position
 - genre mismatch
 
-A lower finding count is useful evidence, but the final article must still read coherently from start to finish.
+A lower finding count is useful evidence, but the final article must still read coherently from start to finish. The exclamation, dash, and binary-contrast rule counts must be zero after rescanning, except for protected verbatim text.

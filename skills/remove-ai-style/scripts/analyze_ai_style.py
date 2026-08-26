@@ -30,6 +30,14 @@ VISUAL_TODO_END_RE = re.compile(r"^\s*<!--\s*/VISUAL_TODO\s*-->\s*$")
 HTML_COMMENT_START_RE = re.compile(r"^\s*<!--")
 HTML_COMMENT_END_RE = re.compile(r"-->\s*$")
 SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3}
+HARD_CONSTRAINT_RULE_IDS = {
+    "zh-binary-contrast",
+    "zh-exclamation",
+    "zh-dash",
+    "en-binary-contrast",
+    "en-exclamation",
+    "en-dash",
+}
 
 
 @dataclass(frozen=True)
@@ -81,8 +89,8 @@ RULES = [
         "zh-binary-contrast",
         "zh",
         "formulaic_contrast",
-        "medium",
-        r"(?:不是|并非|不只是|不仅仅?|不止|与其|而非|拒绝|舍弃)[^。！？\n]{0,45}?(?:而是|更是|还要|也要|专注|选择|追求|而不是)",
+        "high",
+        r"(?:不是|并非|不只是|不仅仅?|不止|与其|而非|拒绝|舍弃)[^。！？\n]{0,45}?(?:而是|而且|更是|还要|也要|专注|选择|追求|而不是)",
         "发现高频的否定 A、肯定 B 句式。",
         "直接陈述真正想表达的正面判断，避免先制造一个稻草人。",
     ),
@@ -159,6 +167,15 @@ RULES = [
         "如果上下文已经表达因果，删掉提示语或改成具体结论。",
     ),
     compile_rule(
+        "zh-exclamation",
+        "zh",
+        "punctuation",
+        "high",
+        r"[！!]",
+        "发现感叹号。",
+        "删除感叹号，按语义改成句号、逗号或直接拆句。",
+    ),
+    compile_rule(
         "zh-double-quote",
         "zh",
         "punctuation",
@@ -171,10 +188,10 @@ RULES = [
         "zh-dash",
         "zh",
         "punctuation",
-        "low",
+        "high",
         r"(?:—{1,2}|–|--)",
         "发现破折号或双连字符。",
-        "避免把破折号当成万能转折；按语义改成句号、逗号或括号。",
+        "删除破折号，按语义改成句号、逗号、冒号、括号或直接拆句。",
     ),
     compile_rule(
         "zh-rhetorical-heading",
@@ -190,7 +207,7 @@ RULES = [
         "en-binary-contrast",
         "en",
         "formulaic_contrast",
-        "medium",
+        "high",
         r"\b(?:not only|not just|not merely|isn't just|doesn't just|more than just|rather than|instead of|not\b[^.!?\n]{0,80}\bbut|not\b[^.!?\n]{0,80}\balso)\b",
         "Detected a formulaic binary contrast.",
         "State the positive claim directly unless the contrast carries real information.",
@@ -257,6 +274,15 @@ RULES = [
         flags=re.IGNORECASE,
     ),
     compile_rule(
+        "en-exclamation",
+        "en",
+        "punctuation",
+        "high",
+        r"!",
+        "Detected an exclamation mark.",
+        "Remove it and use a period, comma, colon, or a simpler sentence as the meaning requires.",
+    ),
+    compile_rule(
         "en-curly-punctuation",
         "en",
         "punctuation",
@@ -269,10 +295,10 @@ RULES = [
         "en-dash",
         "en",
         "punctuation",
-        "low",
+        "high",
         r"(?:—|–|--)",
-        "Detected a dash. Repeated em dashes are a common AI-writing signal.",
-        "Keep occasional natural use; replace repeated decorative dashes with ordinary punctuation.",
+        "Detected an em dash, en dash, or double hyphen used as a dash.",
+        "Remove the dash and use a period, comma, colon, parentheses, or a simpler sentence.",
     ),
     compile_rule(
         "en-rhetorical-heading",
@@ -320,6 +346,11 @@ def parse_args() -> argparse.Namespace:
         "--fail-on",
         choices=("high", "medium", "low"),
         help="Exit with status 2 when a finding at or above this severity exists.",
+    )
+    parser.add_argument(
+        "--fail-on-hard-constraints",
+        action="store_true",
+        help="Exit with status 2 when an editable exclamation mark, dash, or formulaic binary contrast remains.",
     )
     return parser.parse_args()
 
@@ -519,6 +550,7 @@ def rule_findings(segments: list[Segment], language: str) -> list[dict[str, Any]
                     {
                         "id": finding_id(rule.rule_id, masked_text, match.start(), match.end()),
                         "rule_id": rule.rule_id,
+                        "hard_constraint": rule.rule_id in HARD_CONSTRAINT_RULE_IDS,
                         "category": rule.category,
                         "severity": rule.severity,
                         "line": line,
@@ -556,6 +588,7 @@ def structural_findings(segments: list[Segment], language: str) -> list[dict[str
             {
                 "id": finding_id("structure-uniform-paragraphs", anchor, 0, len(anchor)),
                 "rule_id": "structure-uniform-paragraphs",
+                "hard_constraint": False,
                 "category": "over_structured",
                 "severity": "low",
                 "line": window[0].start_line,
@@ -594,6 +627,7 @@ def structural_findings(segments: list[Segment], language: str) -> list[dict[str
             {
                 "id": finding_id("structure-repeated-opener", context, 0, len(context)),
                 "rule_id": "structure-repeated-opener",
+                "hard_constraint": False,
                 "category": "repetitive_rhythm",
                 "severity": "low",
                 "line": matches[0].start_line,
@@ -622,6 +656,7 @@ def structural_findings(segments: list[Segment], language: str) -> list[dict[str
             {
                 "id": finding_id("structure-list-density", context, 0, len(context)),
                 "rule_id": "structure-list-density",
+                "hard_constraint": False,
                 "category": "over_structured",
                 "severity": "low",
                 "line": list_segments[0].start_line,
@@ -655,6 +690,9 @@ def analyze(source: str, lines: list[str], language_option: str) -> dict[str, An
     severity_counts = Counter(item["severity"] for item in findings)
     rule_counts = Counter(item["rule_id"] for item in findings)
     category_counts = Counter(item["category"] for item in findings)
+    hard_constraint_counts = Counter(
+        item["rule_id"] for item in findings if item.get("hard_constraint", False)
+    )
     repeated_rules = [
         {"rule_id": rule_id, "count": count}
         for rule_id, count in sorted(rule_counts.items())
@@ -685,6 +723,7 @@ def analyze(source: str, lines: list[str], language_option: str) -> dict[str, An
         "findings": findings,
         "patterns": {
             "rule_counts": dict(sorted(rule_counts.items())),
+            "hard_constraint_counts": dict(sorted(hard_constraint_counts.items())),
             "category_counts": dict(sorted(category_counts.items())),
             "repeated_rules": repeated_rules,
         },
@@ -718,14 +757,22 @@ def print_text(result: dict[str, Any]) -> None:
         print(f"   Context: {finding['context']}")
 
 
-def should_fail(result: dict[str, Any], fail_on: str | None) -> bool:
-    if fail_on is None:
-        return False
-    threshold = SEVERITY_RANK[fail_on]
-    return any(
-        SEVERITY_RANK[finding["severity"]] >= threshold
-        for finding in result["findings"]
-    )
+def should_fail(
+    result: dict[str, Any],
+    fail_on: str | None,
+    fail_on_hard_constraints: bool,
+) -> bool:
+    if fail_on_hard_constraints and any(
+        finding.get("hard_constraint", False) for finding in result["findings"]
+    ):
+        return True
+    if fail_on is not None:
+        threshold = SEVERITY_RANK[fail_on]
+        return any(
+            SEVERITY_RANK[finding["severity"]] >= threshold
+            for finding in result["findings"]
+        )
+    return False
 
 
 def main() -> int:
@@ -736,7 +783,11 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print_text(result)
-    return 2 if should_fail(result, args.fail_on) else 0
+    return 2 if should_fail(
+        result,
+        args.fail_on,
+        args.fail_on_hard_constraints,
+    ) else 0
 
 
 if __name__ == "__main__":
