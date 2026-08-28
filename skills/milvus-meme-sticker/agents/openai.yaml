@@ -1,4 +1,0 @@
-interface:
-  display_name: "Milvus Meme Sticker"
-  short_description: "Create tiny Milvus-style sticker memes"
-  default_prompt: "Use $milvus-meme-sticker to create three tiny no-text Milvus-style sticker meme variants for this article moment."
