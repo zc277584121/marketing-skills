@@ -16,7 +16,7 @@ Most analyzer hits still require contextual judgment. Three rule families are ha
 
 - Remove all exclamation marks.
 - Remove all em dashes, en dashes, and double hyphens used as dashes.
-- Rewrite all formulaic binary contrasts, including “不是……而是……”, “并非……更是……”, “not just X but Y”, and close variants, as direct claims.
+- Rewrite all formulaic binary contrasts, including “不是……而是……”, “并非……更是……”, “看似……其实……”, “not just X but Y”, and close variants, as direct claims.
 
 The post-edit analyzer counts for `zh-exclamation` or `en-exclamation`, `zh-dash` or `en-dash`, and `zh-binary-contrast` or `en-binary-contrast` must be zero. The only exceptions are protected regions such as code, URLs, Markdown targets, and source text that must remain verbatim. Do not treat brand enthusiasm, casual tone, or a writer's habitual punctuation as reasons to keep these patterns.
 
@@ -80,6 +80,9 @@ Always read the complete article unless the user explicitly asks to process only
 - repeated paragraph logic with different vocabulary
 - synthetic emotional escalation
 - vague claims that sound polished but say little
+- reader-mind-reading and sentences that digest the point for the reader
+- empty evaluative adjectives such as “很清晰” or “很重要”
+- claims that announce importance without a mechanism, number, or example
 - genre mismatch
 - flattened author voice
 - suspicious facts or citations
@@ -104,10 +107,10 @@ Do not change facts, numbers, URLs, code, image paths, TODO IDs, or citation tar
 
 Make contextual edits rather than phrase substitution:
 
-- Prefer concrete subjects, actions, mechanisms, and results.
-- Remove meta-writing, generic importance claims, assistant residue, and decorative transitions.
+- Prefer concrete subjects, actions, mechanisms, and results. Lead with the fact, then the judgment; do not add emphasis that the evidence already carries.
+- Remove meta-writing, reader-mind-reading, generic importance claims, empty evaluative adjectives, assistant residue, and decorative transitions.
 - Vary rhythm only where the current rhythm feels artificial; do not add slang, mistakes, or random fragments to imitate a human.
-- Preserve deliberate voice, technical precision, and genre-appropriate structure.
+- Preserve deliberate voice, technical precision, and genre-appropriate structure. Judgments may sit next to narrative, but each judgment should rest on a fact or mechanism.
 - Drive confirmed findings down as far as the material allows. The hard-constraint rule counts must reach zero outside protected regions.
 
 When invoked as a Subagent on a file, edit the file directly, then return a concise change report. Do not delegate the rewrite to another agent.
