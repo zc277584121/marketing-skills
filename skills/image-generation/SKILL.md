@@ -1,6 +1,6 @@
 ---
 name: image-generation
-description: Generate illustration images for articles and documentation with a Codex-first workflow, OpenAI API fallback, and Gemini fallback.
+description: Generate illustration images for articles and documentation with a Codex-first workflow and OpenAI, Gemini, or Atlas Cloud API fallbacks.
 ---
 
 # Image Generation Skill
@@ -10,12 +10,14 @@ Generate illustration images for blog posts, documentation, and technical articl
 1. **Codex built-in path first** — when the current agent is Codex and the built-in `image_gen` tool is available, use it directly. This path does not require `OPENAI_API_KEY`.
 2. **OpenAI API fallback** — outside Codex, or when the built-in tool is unavailable, use the local script with `OPENAI_API_KEY` if present.
 3. **Gemini fallback** — if OpenAI API generation is unavailable or fails, use the same script with `GEMINI_API_KEY` and the existing Gemini image model.
+4. **Atlas Cloud fallback** — use the asynchronous Atlas image API when `ATLASCLOUD_API_KEY` is available or the user selects it explicitly.
 
 Load provider-specific references only when needed:
 
 - Codex built-in path: `references/codex-built-in.md`
 - OpenAI API fallback: `references/openai-api.md`
 - Gemini fallback: `references/gemini-api.md`
+- Atlas Cloud fallback: `references/atlas-cloud-api.md`
 
 ## When to Use
 
@@ -64,7 +66,8 @@ The script uses `--provider auto` by default:
 
 1. Try OpenAI API when `OPENAI_API_KEY` is set
 2. If OpenAI API fails or is not configured, try Gemini when `GEMINI_API_KEY` is set
-3. If neither credential is available, report the missing environment variables
+3. If Gemini is unavailable, try Atlas Cloud when `ATLASCLOUD_API_KEY` is set
+4. If no credential is available, report the missing environment variables
 
 ## Step 3: Craft the Prompt
 
@@ -114,9 +117,10 @@ the two approaches.
 
 | Parameter | Default | Notes |
 |-----------|---------|-------|
-| Provider | `auto` in script; Codex built-in when available | Codex built-in first, then OpenAI API, then Gemini |
+| Provider | `auto` in script; Codex built-in when available | Codex built-in first, then OpenAI API, Gemini, and Atlas Cloud |
 | OpenAI model | `gpt-image-2` | Used by script fallback |
 | Gemini model | `gemini-3.1-flash-image` | Used by script fallback |
+| Atlas model | `qwen-image-3.0/text-to-image` | Used by Atlas Cloud fallback |
 | Aspect ratio | `16:9` | Landscape, ideal for article illustrations |
 | Image size | `1K` | Good balance of quality and cost |
 | Style | Minimal, clean, soft tones | Auto-prepended by script |
@@ -125,10 +129,11 @@ the two approaches.
 ### Script Options
 
 ```text
---provider          auto, openai, gemini
+--provider          auto, openai, gemini, atlas
 --model             Provider model ID for the selected provider
 --openai-model      OpenAI model ID, default gpt-image-2
 --gemini-model      Gemini model ID, default gemini-3.1-flash-image
+--atlas-model       Atlas model ID, default qwen-image-3.0/text-to-image
 --aspect-ratio      1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 9:16, 16:9, 21:9, etc.
 --image-size        512, 1K, 2K, 4K
 --openai-quality    low, medium, high, auto

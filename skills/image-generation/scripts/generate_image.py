@@ -1,29 +1,37 @@
 #!/usr/bin/env python3
-"""Generate illustration images with OpenAI first and Gemini as fallback.
+"""Generate illustration images with OpenAI, Gemini, or Atlas Cloud.
 
 Usage:
     python generate_image.py --prompt "your prompt" --output image.png
     python generate_image.py --provider openai --prompt "your prompt"
     python generate_image.py --provider gemini --prompt "your prompt"
+    python generate_image.py --provider atlas --prompt "your prompt"
 """
 
 import argparse
 import base64
+import ipaddress
 import json
 import math
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, urljoin, urlparse
 
 import httpx
 
 DEFAULT_PROVIDER = "auto"
 DEFAULT_OPENAI_MODEL = "gpt-image-2"
 DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-image"
+DEFAULT_ATLAS_MODEL = "qwen-image-3.0/text-to-image"
 DEFAULT_ASPECT_RATIO = "16:9"
 DEFAULT_IMAGE_SIZE = "1K"
 DEFAULT_OPENAI_QUALITY = "high"
+ATLAS_API_BASE = "https://api.atlascloud.ai/api/v1"
+ATLAS_MAX_POLLS = 90
+ATLAS_POLL_INTERVAL = 2
 DEFAULT_STYLE_PREFIX = (
     "Use a clean, modern color palette with soft tones. "
     "Minimalist flat illustration style with clear visual hierarchy. "
@@ -31,7 +39,7 @@ DEFAULT_STYLE_PREFIX = (
     "No photorealistic rendering. No excessive gradients or shadows."
 )
 
-VALID_PROVIDERS = ["auto", "openai", "gemini"]
+VALID_PROVIDERS = ["auto", "openai", "gemini", "atlas"]
 VALID_ASPECT_RATIOS = [
     "1:1",
     "1:4",
@@ -123,6 +131,107 @@ def openai_size_from_aspect(aspect_ratio: str, image_size: str) -> str:
         height = round_to_multiple(height * scale)
 
     return f"{width}x{height}"
+
+
+def atlas_size_from_aspect(aspect_ratio: str, image_size: str) -> str:
+    """Map ratio and size tiers to the Atlas model's 512-2048 pixel range."""
+    ratio_w, ratio_h = parse_aspect_ratio(aspect_ratio)
+    long_to_short = max(ratio_w, ratio_h) / min(ratio_w, ratio_h)
+    if long_to_short > 4:
+        raise GenerationError(
+            f"Aspect ratio {aspect_ratio} is not supported by the Atlas model because it exceeds 4:1"
+        )
+
+    short_edge = {
+        "512": 512,
+        "1K": 1024,
+        "2K": 1536,
+        "4K": 2048,
+    }[image_size]
+
+    if ratio_w >= ratio_h:
+        width = short_edge * ratio_w / ratio_h
+        height = short_edge
+    else:
+        width = short_edge
+        height = short_edge * ratio_h / ratio_w
+
+    scale = min(1.0, 2048 / max(width, height))
+    width = round_to_multiple(width * scale)
+    height = round_to_multiple(height * scale)
+    return f"{width}*{height}"
+
+
+def validate_public_https_url(url: str) -> None:
+    parsed = urlparse(url)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
+        raise GenerationError("Atlas returned an invalid image URL.")
+
+    hostname = parsed.hostname.lower().rstrip(".")
+    if hostname == "localhost" or hostname.endswith(
+        (".localhost", ".local", ".internal")
+    ):
+        raise GenerationError("Atlas returned a local image URL.")
+
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return
+    if not address.is_global:
+        raise GenerationError("Atlas returned a non-public image URL.")
+
+
+def download_atlas_image(url: str) -> bytes:
+    """Download an Atlas result without forwarding the API credential."""
+    current_url = url
+    for _ in range(6):
+        validate_public_https_url(current_url)
+        response = httpx.get(
+            current_url,
+            headers={"Accept": "image/*"},
+            timeout=120,
+            follow_redirects=False,
+        )
+        if response.status_code in {301, 302, 303, 307, 308}:
+            location = response.headers.get("location")
+            if not location:
+                raise GenerationError(
+                    "Atlas image redirect did not include a location."
+                )
+            current_url = urljoin(current_url, location)
+            continue
+        if response.status_code != 200:
+            raise GenerationError(
+                f"Atlas image download error {response.status_code}: {response.text[:500]}"
+            )
+        content_type = response.headers.get("content-type", "").split(";", 1)[0]
+        if not content_type.startswith("image/"):
+            raise GenerationError(
+                f"Atlas output is not an image: {content_type or 'unknown'}"
+            )
+        if not response.content:
+            raise GenerationError("Atlas returned an empty image.")
+        return response.content
+    raise GenerationError("Atlas image download exceeded the redirect limit.")
+
+
+def atlas_prediction_data(response: httpx.Response) -> dict[str, Any]:
+    if response.status_code != 200:
+        raise GenerationError(
+            f"Atlas API error {response.status_code}: {response.text[:500]}"
+        )
+    payload = response.json()
+    if payload.get("code") not in (None, 0, 200):
+        raise GenerationError(payload.get("message") or "Atlas API request failed.")
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise GenerationError("Atlas response did not include prediction data.")
+    return data
 
 
 def save_image_bytes(image_bytes: bytes, output_path: str) -> str:
@@ -251,12 +360,70 @@ def generate_with_gemini(
     raise GenerationError("No image data in response.")
 
 
+def generate_with_atlas(
+    prompt: str,
+    output_path: str,
+    model: str,
+    aspect_ratio: str,
+    image_size: str,
+) -> str:
+    api_key = os.environ.get("ATLASCLOUD_API_KEY")
+    if not api_key:
+        raise GenerationError("ATLASCLOUD_API_KEY environment variable is not set.")
+
+    size = atlas_size_from_aspect(aspect_ratio, image_size)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "marketing-skills-image-generation/1.0",
+    }
+    payload = {"model": model, "prompt": prompt, "size": size}
+
+    print("Provider:     atlas")
+    print(f"Model:        {model}")
+    print(f"Size:         {size}")
+    print(f"Output:       {output_path}")
+    print("Generating...")
+
+    response = httpx.post(
+        f"{ATLAS_API_BASE}/model/generateImage",
+        headers=headers,
+        json=payload,
+        timeout=60,
+    )
+    data = atlas_prediction_data(response)
+    prediction_id = data.get("id")
+    if not prediction_id:
+        raise GenerationError("Atlas did not return a prediction ID.")
+
+    poll_url = f"{ATLAS_API_BASE}/model/prediction/{quote(str(prediction_id), safe='')}"
+    for poll_number in range(ATLAS_MAX_POLLS + 1):
+        status = str(data.get("status", "")).lower()
+        if status == "completed":
+            outputs = data.get("outputs")
+            if not isinstance(outputs, list) or not outputs:
+                raise GenerationError("Atlas completed without an image URL.")
+            image_bytes = download_atlas_image(str(outputs[0]))
+            save_image_bytes(image_bytes, output_path)
+            print(f"Done! Saved {len(image_bytes):,} bytes to {output_path}")
+            return output_path
+        if status in {"failed", "timeout", "canceled", "cancelled"}:
+            raise GenerationError(data.get("error") or f"Atlas prediction {status}.")
+        if poll_number == ATLAS_MAX_POLLS:
+            break
+        time.sleep(ATLAS_POLL_INTERVAL)
+        data = atlas_prediction_data(httpx.get(poll_url, headers=headers, timeout=60))
+
+    raise GenerationError("Atlas prediction timed out while polling.")
+
+
 def generate_image(
     prompt: str,
     output_path: str,
     provider: str = DEFAULT_PROVIDER,
     openai_model: str = DEFAULT_OPENAI_MODEL,
     gemini_model: str = DEFAULT_GEMINI_MODEL,
+    atlas_model: str = DEFAULT_ATLAS_MODEL,
     aspect_ratio: str = DEFAULT_ASPECT_RATIO,
     image_size: str = DEFAULT_IMAGE_SIZE,
     openai_quality: str = DEFAULT_OPENAI_QUALITY,
@@ -291,6 +458,15 @@ def generate_image(
             image_size=image_size,
         )
 
+    if provider == "atlas":
+        return generate_with_atlas(
+            prompt=full_prompt,
+            output_path=output_path,
+            model=atlas_model,
+            aspect_ratio=aspect_ratio,
+            image_size=image_size,
+        )
+
     errors: list[str] = []
     if os.environ.get("OPENAI_API_KEY"):
         try:
@@ -318,9 +494,23 @@ def generate_image(
         except Exception as exc:
             errors.append(f"Gemini failed: {exc}")
 
+    if os.environ.get("ATLASCLOUD_API_KEY"):
+        try:
+            return generate_with_atlas(
+                prompt=full_prompt,
+                output_path=output_path,
+                model=atlas_model,
+                aspect_ratio=aspect_ratio,
+                image_size=image_size,
+            )
+        except Exception as exc:
+            errors.append(f"Atlas failed: {exc}")
+
     if errors:
         raise GenerationError("; ".join(errors))
-    raise GenerationError("No provider credentials found. Set OPENAI_API_KEY or GEMINI_API_KEY.")
+    raise GenerationError(
+        "No provider credentials found. Set OPENAI_API_KEY, GEMINI_API_KEY, or ATLASCLOUD_API_KEY."
+    )
 
 
 def main() -> None:
@@ -331,6 +521,11 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="Provider model ID. Applies to the selected provider.")
     parser.add_argument("--openai-model", default=DEFAULT_OPENAI_MODEL, help=f"OpenAI model ID (default: {DEFAULT_OPENAI_MODEL})")
     parser.add_argument("--gemini-model", default=DEFAULT_GEMINI_MODEL, help=f"Gemini model ID (default: {DEFAULT_GEMINI_MODEL})")
+    parser.add_argument(
+        "--atlas-model",
+        default=DEFAULT_ATLAS_MODEL,
+        help=f"Atlas model ID (default: {DEFAULT_ATLAS_MODEL})",
+    )
     parser.add_argument("--aspect-ratio", default=DEFAULT_ASPECT_RATIO, help=f"Aspect ratio (default: {DEFAULT_ASPECT_RATIO})")
     parser.add_argument("--image-size", default=DEFAULT_IMAGE_SIZE, help=f"Image size tier (default: {DEFAULT_IMAGE_SIZE})")
     parser.add_argument("--openai-quality", choices=VALID_OPENAI_QUALITIES, default=DEFAULT_OPENAI_QUALITY)
@@ -349,9 +544,12 @@ def main() -> None:
 
     openai_model = args.openai_model
     gemini_model = args.gemini_model
+    atlas_model = args.atlas_model
     if args.model:
         if args.provider == "gemini":
             gemini_model = args.model
+        elif args.provider == "atlas":
+            atlas_model = args.model
         else:
             openai_model = args.model
 
@@ -362,6 +560,7 @@ def main() -> None:
             provider=args.provider,
             openai_model=openai_model,
             gemini_model=gemini_model,
+            atlas_model=atlas_model,
             aspect_ratio=args.aspect_ratio,
             image_size=args.image_size,
             openai_quality=args.openai_quality,
